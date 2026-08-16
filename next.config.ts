@@ -1,0 +1,24 @@
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  transpilePackages: ["three"],
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push({
+        "utf-8-validate": "commonjs utf-8-validate",
+        bufferutil: "commonjs bufferutil",
+        canvas: "commonjs canvas",
+      });
+    }
+    return config;
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  devIndicators: {
+    buildActivity: false,
+    appIsrStatus: false,
+  },
+};
+
+export default nextConfig;
