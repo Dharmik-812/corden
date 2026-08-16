@@ -83,85 +83,80 @@ export function LayersPanel() {
   const totalObjects = canvas?.getObjects().length ?? 0;
 
   return (
-    <div className="h-full flex flex-col w-full">
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
       {/* Header */}
-      <div
-        style={{
-          height: '40px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 12px',
-          borderBottom: '1px solid var(--border-primary)',
-          flexShrink: 0,
-        }}
-      >
-        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)' }}>
-          Layers
-        </span>
-        <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-          {totalObjects}
-        </span>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', background: 'rgba(0, 0, 0, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Layers</span>
+        <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 600, background: 'rgba(74, 144, 226, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>{totalObjects}</span>
       </div>
 
       {/* Layer List */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '6px' }}>
+      <div style={{ padding: '12px', overflowY: 'auto', flex: 1 }}>
         {layers.length === 0 ? (
-          <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '12px', lineHeight: 1.5 }}>
+          <div style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem', textAlign: 'center', padding: '32px 0', opacity: 0.7 }}>
             No objects yet.<br />
-            <span style={{ color: 'var(--text-quaternary)', fontSize: '11px' }}>Use a tool above to draw.</span>
+            <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>Use a tool above to draw.</span>
           </div>
         ) : (
-          layers.map((obj, i) => {
-            const isActive = activeObj === obj;
-            return (
-              <div
-                key={i}
-                onClick={() => selectLayer(obj)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '6px 8px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  background: isActive ? 'rgba(74,144,226,0.12)' : 'transparent',
-                  border: isActive ? '1px solid rgba(74,144,226,0.3)' : '1px solid transparent',
-                  marginBottom: '2px',
-                  color: obj.visible === false ? 'var(--text-quaternary)' : 'var(--text-primary)',
-                  transition: 'background 0.1s',
-                }}
-              >
-                {/* Type Icon */}
-                <span style={{ color: isActive ? 'var(--accent-primary)' : 'var(--text-tertiary)', flexShrink: 0 }}>
-                  {getTypeIcon(obj.type)}
-                </span>
-
-                {/* Label */}
-                <span style={{ flex: 1, fontSize: '12px', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {getTypeLabel(obj.type, layers.length - i)}
-                </span>
-
-                {/* Visibility Toggle */}
-                <button
-                  onClick={(e) => toggleVisibility(e, obj)}
-                  title="Toggle visibility"
-                  style={{ color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', borderRadius: '3px', flexShrink: 0 }}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {layers.map((obj, i) => {
+              const isActive = activeObj === obj;
+              return (
+                <div
+                  key={i}
+                  onClick={() => selectLayer(obj)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '10px', cursor: 'pointer',
+                    background: isActive ? 'rgba(74, 144, 226, 0.15)' : 'transparent',
+                    color: isActive ? '#fff' : 'var(--text-secondary)',
+                    border: `1px solid ${isActive ? 'rgba(74, 144, 226, 0.3)' : 'transparent'}`,
+                    transition: 'all 0.2s',
+                    fontSize: '0.875rem',
+                    fontWeight: isActive ? 600 : 400,
+                    opacity: obj.visible === false ? 0.5 : 1
+                  }}
+                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)' }}
+                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
                 >
-                  {obj.visible === false ? <EyeOff size={12} /> : <Eye size={12} />}
-                </button>
+                  {/* Type Icon */}
+                  <span style={{ opacity: isActive ? 1 : 0.7, color: isActive ? 'var(--accent-primary)' : 'inherit', display: 'flex' }}>
+                    {getTypeIcon(obj.type)}
+                  </span>
 
-                {/* Delete */}
-                <button
-                  onClick={(e) => deleteLayer(e, obj)}
-                  title="Delete"
-                  style={{ color: 'var(--text-quaternary)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', borderRadius: '3px', flexShrink: 0 }}
-                >
-                  <Trash2 size={12} />
-                </button>
-              </div>
-            );
-          })
+                  {/* Label */}
+                  <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'var(--font-mono)' }}>
+                    {getTypeLabel(obj.type, layers.length - i)}
+                  </span>
+
+                  {/* Visibility Toggle */}
+                  <button
+                    onClick={(e) => toggleVisibility(e, obj)}
+                    title="Toggle visibility"
+                    style={{
+                      background: 'transparent', border: 'none', color: 'inherit', padding: '4px', cursor: 'pointer', borderRadius: '4px', transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    {obj.visible === false ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+
+                  {/* Delete */}
+                  <button
+                    onClick={(e) => deleteLayer(e, obj)}
+                    title="Delete"
+                    style={{
+                      background: 'transparent', border: 'none', color: 'inherit', padding: '4px', cursor: 'pointer', borderRadius: '4px', transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(226, 93, 93, 0.2)'; e.currentTarget.style.color = '#E25D5D' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'inherit' }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

@@ -6,8 +6,8 @@ import { fabric } from "fabric";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-      <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>{label}</span>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>{label}</span>
       {children}
     </div>
   );
@@ -20,34 +20,20 @@ function NumberInput({ value, onChange }: { value: number; onChange: (v: string)
       value={value}
       onChange={(e) => onChange(e.target.value)}
       style={{
-        width: '72px',
-        padding: '4px 8px',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-primary)',
-        borderRadius: '5px',
-        color: 'var(--text-primary)',
-        fontSize: '12px',
-        fontFamily: 'var(--font-mono)',
-        textAlign: 'right',
-        outline: 'none',
+        width: '72px', padding: '4px 8px', background: 'rgba(255, 255, 255, 0.03)',
+        border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '6px',
+        color: 'var(--text-primary)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)',
+        textAlign: 'right', outline: 'none', transition: 'border-color 0.2s'
       }}
+      onFocus={(e) => e.target.style.borderColor = 'var(--accent-primary)'}
+      onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
     />
   );
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{
-      fontSize: '10px',
-      fontWeight: 600,
-      color: 'var(--text-quaternary)',
-      textTransform: 'uppercase',
-      letterSpacing: '0.1em',
-      fontFamily: 'var(--font-mono)',
-      marginBottom: '10px',
-      paddingBottom: '6px',
-      borderBottom: '1px solid var(--border-secondary)',
-    }}>
+    <div className="text-[10px] font-semibold text-quaternary uppercase tracking-widest font-mono mb-2 pb-1.5 border-b border-secondary">
       {children}
     </div>
   );
@@ -105,117 +91,119 @@ export function PropertiesPanel() {
   };
 
   return (
-    <div className="h-full flex flex-col w-full">
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
       {/* Header */}
-      <div style={{
-        height: '40px',
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 12px',
-        borderBottom: '1px solid var(--border-primary)',
-        flexShrink: 0,
-      }}>
-        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)' }}>
-          {activeObj ? `Properties — ${activeObj.type}` : 'Properties'}
-        </span>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', background: 'rgba(0, 0, 0, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Properties</span>
+        {activeObj && <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 600, background: 'rgba(74, 144, 226, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>{activeObj.type}</span>}
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 12px' }}>
+      <div style={{ padding: '20px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         {!activeObj ? (
-          <div style={{ textAlign: 'center', color: 'var(--text-quaternary)', fontSize: '12px', marginTop: '40px', lineHeight: 1.6 }}>
+          <div style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem', textAlign: 'center', padding: '32px 0', opacity: 0.7 }}>
             Select an object<br />to edit its properties.
           </div>
         ) : (
           <>
             {/* Transform */}
-            <SectionLabel>Transform</SectionLabel>
-            <Row label="X">
-              <NumberInput value={Math.round(activeObj.left ?? 0)} onChange={v => set('left', num(v))} />
-            </Row>
-            <Row label="Y">
-              <NumberInput value={Math.round(activeObj.top ?? 0)} onChange={v => set('top', num(v))} />
-            </Row>
-            <Row label="W">
-              <NumberInput value={Math.round((activeObj.width ?? 0) * (activeObj.scaleX ?? 1))} onChange={v => set('width', num(v) / (activeObj.scaleX ?? 1))} />
-            </Row>
-            <Row label="H">
-              <NumberInput value={Math.round((activeObj.height ?? 0) * (activeObj.scaleY ?? 1))} onChange={v => set('height', num(v) / (activeObj.scaleY ?? 1))} />
-            </Row>
-            <Row label="Angle">
-              <NumberInput value={Math.round(activeObj.angle ?? 0)} onChange={v => set('angle', num(v))} />
-            </Row>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Transform</label>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                <Row label="X">
+                  <NumberInput value={Math.round(activeObj.left ?? 0)} onChange={v => set('left', num(v))} />
+                </Row>
+                <Row label="Y">
+                  <NumberInput value={Math.round(activeObj.top ?? 0)} onChange={v => set('top', num(v))} />
+                </Row>
+                <Row label="W">
+                  <NumberInput value={Math.round((activeObj.width ?? 0) * (activeObj.scaleX ?? 1))} onChange={v => set('width', num(v) / (activeObj.scaleX ?? 1))} />
+                </Row>
+                <Row label="H">
+                  <NumberInput value={Math.round((activeObj.height ?? 0) * (activeObj.scaleY ?? 1))} onChange={v => set('height', num(v) / (activeObj.scaleY ?? 1))} />
+                </Row>
+              </div>
+              <Row label="Rotation">
+                <NumberInput value={Math.round(activeObj.angle ?? 0)} onChange={v => set('angle', num(v))} />
+              </Row>
+            </div>
 
-            <div style={{ height: '20px' }} />
+            <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.05)' }} />
 
             {/* Appearance */}
-            <SectionLabel>Appearance</SectionLabel>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Appearance</label>
 
-            <div style={{ marginBottom: '12px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginBottom: '6px' }}>Fill</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                {SWATCHES.map(color => (
-                  <div
-                    key={`fill-${color}`}
-                    title={color}
-                    onClick={() => set('fill', color)}
-                    style={{
-                      width: '22px',
-                      height: '22px',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      border: activeObj.fill === color ? '2px solid var(--accent-primary)' : '1px solid var(--border-primary)',
-                      background: color === 'transparent'
-                        ? 'repeating-linear-gradient(45deg,#444 0px,#444 5px,#222 5px,#222 10px)'
-                        : color,
-                    }}
-                  />
-                ))}
-                <input
-                  type="color"
-                  value={typeof activeObj.fill === 'string' && activeObj.fill !== 'transparent' ? activeObj.fill : '#ffffff'}
-                  onChange={e => set('fill', e.target.value)}
-                  style={{ width: '22px', height: '22px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'none' }}
-                  title="Custom fill color"
-                />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>Fill</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {SWATCHES.map(color => (
+                    <div
+                      key={`fill-${color}`}
+                      title={color}
+                      onClick={() => set('fill', color)}
+                      style={{
+                        width: '28px', height: '28px', borderRadius: '8px', cursor: 'pointer',
+                        borderColor: activeObj.fill === color ? 'var(--accent-primary)' : 'rgba(255,255,255,0.1)',
+                        borderWidth: activeObj.fill === color ? '2px' : '1px', borderStyle: 'solid',
+                        background: color === 'transparent' ? 'repeating-linear-gradient(45deg,#444 0px,#444 5px,#222 5px,#222 10px)' : color,
+                        boxShadow: activeObj.fill === color ? '0 0 0 2px rgba(74, 144, 226, 0.3)' : 'none',
+                        transition: 'all 0.2s'
+                      }}
+                    />
+                  ))}
+                  <div style={{ position: 'relative', width: '28px', height: '28px', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                    <input
+                      type="color"
+                      value={typeof activeObj.fill === 'string' && activeObj.fill !== 'transparent' ? activeObj.fill : '#ffffff'}
+                      onChange={e => set('fill', e.target.value)}
+                      style={{ position: 'absolute', top: '-10px', left: '-10px', width: '50px', height: '50px', cursor: 'pointer', border: 'none', padding: 0 }}
+                      title="Custom fill color"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div style={{ marginBottom: '12px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginBottom: '6px' }}>Stroke</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                {SWATCHES.map(color => (
-                  <div
-                    key={`stroke-${color}`}
-                    title={color}
-                    onClick={() => set('stroke', color)}
-                    style={{
-                      width: '22px',
-                      height: '22px',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      border: activeObj.stroke === color ? '2px solid var(--accent-primary)' : '1px solid var(--border-primary)',
-                      background: color === 'transparent'
-                        ? 'repeating-linear-gradient(45deg,#444 0px,#444 5px,#222 5px,#222 10px)'
-                        : color,
-                    }}
-                  />
-                ))}
-                <input
-                  type="color"
-                  value={typeof activeObj.stroke === 'string' && activeObj.stroke !== 'transparent' ? activeObj.stroke : '#4A90E2'}
-                  onChange={e => set('stroke', e.target.value)}
-                  style={{ width: '22px', height: '22px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'none' }}
-                  title="Custom stroke color"
-                />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>Stroke</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {SWATCHES.map(color => (
+                    <div
+                      key={`stroke-${color}`}
+                      title={color}
+                      onClick={() => set('stroke', color)}
+                      style={{
+                        width: '28px', height: '28px', borderRadius: '8px', cursor: 'pointer',
+                        borderColor: activeObj.stroke === color ? 'var(--accent-primary)' : 'rgba(255,255,255,0.1)',
+                        borderWidth: activeObj.stroke === color ? '2px' : '1px', borderStyle: 'solid',
+                        background: color === 'transparent' ? 'repeating-linear-gradient(45deg,#444 0px,#444 5px,#222 5px,#222 10px)' : color,
+                        boxShadow: activeObj.stroke === color ? '0 0 0 2px rgba(74, 144, 226, 0.3)' : 'none',
+                        transition: 'all 0.2s'
+                      }}
+                    />
+                  ))}
+                  <div style={{ position: 'relative', width: '28px', height: '28px', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                    <input
+                      type="color"
+                      value={typeof activeObj.stroke === 'string' && activeObj.stroke !== 'transparent' ? activeObj.stroke : '#4A90E2'}
+                      onChange={e => set('stroke', e.target.value)}
+                      style={{ position: 'absolute', top: '-10px', left: '-10px', width: '50px', height: '50px', cursor: 'pointer', border: 'none', padding: 0 }}
+                      title="Custom stroke color"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <Row label="Stroke W.">
-              <NumberInput value={activeObj.strokeWidth ?? 0} onChange={v => set('strokeWidth', num(v))} />
-            </Row>
-            <Row label="Opacity">
-              <NumberInput value={Math.round((activeObj.opacity ?? 1) * 100)} onChange={v => set('opacity', num(v) / 100)} />
-            </Row>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+                <Row label="Stroke Width">
+                  <NumberInput value={activeObj.strokeWidth ?? 0} onChange={v => set('strokeWidth', num(v))} />
+                </Row>
+                <Row label="Opacity (%)">
+                  <NumberInput value={Math.round((activeObj.opacity ?? 1) * 100)} onChange={v => set('opacity', num(v) / 100)} />
+                </Row>
+              </div>
+
+            </div>
           </>
         )}
       </div>

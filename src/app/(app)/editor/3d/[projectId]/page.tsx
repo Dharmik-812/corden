@@ -7,5 +7,5 @@ export default async function Editor3DPage({
 }) {
   const { projectId } = await params;
 
-  return <Editor3DClient />;
+  return <Editor3DClient projectId={projectId} />;
 }

@@ -1,67 +1,92 @@
 "use client";
 
-import { Canvas2D } from "@/components/editor-2d/Canvas2D";
-import { Toolbar2D } from "@/components/editor-2d/Toolbar2D";
-import { LayersPanel } from "@/components/editor-2d/LayersPanel";
-import { PropertiesPanel } from "@/components/editor-2d/PropertiesPanel";
+import { useParams } from "next/navigation";
+import { PixelCanvas } from "@/components/editor-2d/PixelCanvas";
+import { PixelToolbar } from "@/components/editor-2d/PixelToolbar";
+import { ColorPalette } from "@/components/editor-2d/ColorPalette";
+import { SaveIndicator } from "@/components/shared/SaveIndicator";
+import { usePixelEditorStore } from "@/stores/pixelEditor-store";
+import { useProjectSave2D } from "@/hooks/useProjectSave";
 
-export default async function Editor2DPage({
-  params,
-}: {
-  params: Promise<{ projectId: string }>;
-}) {
-  const { projectId } = await params;
+function PixelEditorHUD() {
+  const { primaryColor, activeTool, canvasWidth, canvasHeight, zoom } = usePixelEditorStore();
+
+  const toolLabel: Record<string, string> = {
+    pencil: '✏ Pencil',
+    eraser: '⬜ Eraser',
+    fill: '🪣 Fill',
+    eyedropper: '🔬 Eyedropper',
+  };
 
   return (
-    <div
-      className="editor-layout flex overflow-hidden"
-      style={{ position: 'relative', marginTop: 'var(--navbar-height)' }}
-    >
-      {/* Left Layers Panel */}
-      <aside
-        className="h-full flex flex-col shrink-0"
-        style={{
-          width: '220px',
-          background: 'var(--bg-panel)',
-          borderRight: '1px solid var(--border-primary)',
-        }}
-      >
-        <LayersPanel />
-      </aside>
+    <div style={{
+      position: 'absolute', top: '16px', left: '50%', transform: 'translateX(-50%)',
+      zIndex: 40, display: 'flex', alignItems: 'center', gap: '12px',
+      padding: '8px 18px', background: 'rgba(6,6,10,0.85)', backdropFilter: 'blur(24px)',
+      border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px',
+      fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--text-secondary)',
+      pointerEvents: 'none', userSelect: 'none', whiteSpace: 'nowrap',
+    }}>
+      <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: primaryColor, border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }} />
+      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{toolLabel[activeTool]}</span>
+      <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
+      <span>{canvasWidth} × {canvasHeight}</span>
+      <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
+      <span>{zoom}x</span>
+    </div>
+  );
+}
 
-      {/* Center: Toolbar + Canvas */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        {/* Top Toolbar */}
-        <div
-          style={{
-            height: '48px',
-            background: 'var(--bg-panel)',
-            borderBottom: '1px solid var(--border-primary)',
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <Toolbar2D />
-        </div>
+export default function Editor2DPage() {
+  const params = useParams();
+  const projectId = (params.projectId as string) ?? "new";
+  const { resolvedId, saveStatus, save, title } = useProjectSave2D(projectId);
 
-        {/* Canvas area */}
-        <main className="flex-1 relative overflow-hidden">
-          <Canvas2D />
-        </main>
+  if (!resolvedId) {
+    return (
+      <div style={{
+        position: 'fixed', top: 'var(--navbar-height)', left: 0, right: 0, bottom: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: '#080a0f', color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem',
+      }}>
+        Loading project…
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ position: 'fixed', top: 'var(--navbar-height)', left: 0, right: 0, bottom: 0, overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+        <PixelCanvas />
       </div>
 
-      {/* Right Properties Panel */}
-      <aside
-        className="h-full flex flex-col shrink-0"
-        style={{
-          width: '260px',
-          background: 'var(--bg-panel)',
-          borderLeft: '1px solid var(--border-primary)',
-        }}
-      >
-        <PropertiesPanel />
-      </aside>
+      <div style={{
+        position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)',
+        zIndex: 40,
+      }}>
+        <PixelToolbar onSave={save} />
+      </div>
+
+      <PixelEditorHUD />
+
+      <div style={{
+        position: 'absolute', top: '16px', right: '272px', zIndex: 40,
+      }}>
+        <SaveIndicator status={saveStatus} onSave={save} title={title} />
+      </div>
+
+      <div style={{
+        position: 'absolute', right: '16px', top: '16px', bottom: '16px',
+        zIndex: 40, width: '240px',
+        background: 'rgba(8, 8, 12, 0.88)',
+        backdropFilter: 'blur(32px)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: '18px',
+        boxShadow: '0 8px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      }}>
+        <ColorPalette />
+      </div>
     </div>
   );
 }

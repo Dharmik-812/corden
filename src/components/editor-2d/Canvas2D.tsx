@@ -29,17 +29,21 @@ export function Canvas2D() {
     setCanvas(canvas);
 
     // Grid rendering is handled by CSS background in globals.css for performance
-    // but we need to handle window resize
-    const handleResize = () => {
-      if (wrapperRef.current) {
-        canvas.setWidth(wrapperRef.current.clientWidth);
-        canvas.setHeight(wrapperRef.current.clientHeight);
+    // but we need to handle window resize and layout changes
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        if (entry.target === wrapperRef.current) {
+          canvas.setWidth(entry.contentRect.width);
+          canvas.setHeight(entry.contentRect.height);
+          canvas.renderAll();
+        }
       }
-    };
-    window.addEventListener("resize", handleResize);
+    });
+
+    resizeObserver.observe(wrapperRef.current);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      resizeObserver.disconnect();
       canvas.dispose();
       setCanvas(null);
     };

@@ -1,132 +1,239 @@
 "use client";
 
 import { useEditor3DStore, SceneObject } from "@/stores/editor3d-store";
-import { TransformControls, OrbitControls, Grid } from "@react-three/drei";
-import { Geometry, Base, Subtraction, Addition, Intersection } from "@react-three/csg";
+import { TransformControls } from "@react-three/drei";
 import * as THREE from "three";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState, useMemo, Suspense } from "react";
+import { LightObjects } from "./LightObjects";
+import { TexturedMaterial } from "./TexturedMaterial";
 
-function ObjectMesh({ obj }: { obj: SceneObject }) {
-  const { selectedId, setSelectedId, updateObject, transformMode } = useEditor3DStore();
-  const meshRef = useRef<THREE.Mesh>(null);
+function CameraObject({ obj }: { obj: SceneObject }) {
+  const { selectedId, setSelectedId, updateObject, transformMode, viewPreset } = useEditor3DStore();
   const isSelected = selectedId === obj.id;
+  const meshRef = useRef<THREE.Group>(null);
+  const [target, setTarget] = useState<THREE.Group | null>(null);
 
-  const GeometryComponent = () => {
-    switch (obj.type) {
-      case 'cube': return <boxGeometry args={[1, 1, 1]} />;
-      case 'sphere': return <sphereGeometry args={[0.5, 32, 32]} />;
-      case 'cylinder': return <cylinderGeometry args={[0.5, 0.5, 1, 32]} />;
-      case 'cone': return <coneGeometry args={[0.5, 1, 32]} />;
-      case 'plane': return <planeGeometry args={[1, 1]} />;
-      default: return <boxGeometry args={[1, 1, 1]} />;
+  useEffect(() => {
+    if (isSelected && meshRef.current) {
+      setTarget(meshRef.current);
+    } else {
+      setTarget(null);
     }
-  };
+  }, [isSelected]);
 
-  const MaterialComponent = () => (
-    <meshStandardMaterial 
-      color={obj.color} 
-      roughness={obj.roughness} 
-      metalness={obj.metalness}
-      side={THREE.DoubleSide}
-    />
-  );
+  const [snap, setSnap] = useState(false);
 
-  const renderMesh = () => {
-    if (obj.isBoolean && obj.booleanChildren?.length) {
-      return (
-        <mesh 
-          ref={meshRef}
-          position={obj.position}
-          rotation={obj.rotation}
-          scale={obj.scale}
-          onClick={(e) => { e.stopPropagation(); setSelectedId(obj.id); }}
-          castShadow
-          receiveShadow
-        >
-          <Geometry>
-            <Base>
-              <GeometryComponent />
-            </Base>
-            {obj.booleanChildren.map((child, i) => {
-              const ChildGeom = () => {
-                switch (child.type) {
-                  case 'cube': return <boxGeometry args={[1, 1, 1]} />;
-                  case 'sphere': return <sphereGeometry args={[0.5, 32, 32]} />;
-                  case 'cylinder': return <cylinderGeometry args={[0.5, 0.5, 1, 32]} />;
-                  case 'cone': return <coneGeometry args={[0.5, 1, 32]} />;
-                  case 'plane': return <planeGeometry args={[1, 1]} />;
-                  default: return <boxGeometry args={[1, 1, 1]} />;
-                }
-              };
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Control') setSnap(true); };
+    const handleKeyUp = (e: KeyboardEvent) => { if (e.key === 'Control') setSnap(false); };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); };
+  }, []);
 
-              const props = {
-                position: child.position,
-                rotation: child.rotation,
-                scale: child.scale,
-              };
+  // When we are actively looking through this camera, we don't render its frustum box
+  const isActiveView = viewPreset === 'camera' && isSelected;
 
-              if (child.booleanOperation === 'subtract') {
-                return <Subtraction key={i} {...props}><ChildGeom /></Subtraction>;
-              } else if (child.booleanOperation === 'intersect') {
-                return <Intersection key={i} {...props}><ChildGeom /></Intersection>;
-              } else {
-                return <Addition key={i} {...props}><ChildGeom /></Addition>;
-              }
-            })}
-          </Geometry>
-          <MaterialComponent />
-        </mesh>
-      );
-    }
-
-    return (
-      <mesh
+  return (
+    <>
+      <group
         ref={meshRef}
         position={obj.position}
         rotation={obj.rotation}
         scale={obj.scale}
         onClick={(e) => { e.stopPropagation(); setSelectedId(obj.id); }}
-        castShadow
-        receiveShadow
       >
-        <GeometryComponent />
-        <MaterialComponent />
-      </mesh>
+        {!isActiveView && (
+          <group>
+            {/* Main camera box */}
+            <mesh>
+              <boxGeometry args={[0.4, 0.4, 0.6]} />
+              <meshBasicMaterial color={isSelected ? "#ffaa00" : "#aaaaaa"} wireframe />
+            </mesh>
+            {/* Triangle pointing "up" */}
+            <mesh position={[0, 0.3, -0.3]}>
+              <coneGeometry args={[0.1, 0.2, 4]} />
+              <meshBasicMaterial color={isSelected ? "#ffaa00" : "#aaaaaa"} wireframe />
+            </mesh>
+            {/* Lens */}
+            <mesh position={[0, 0, -0.3]}>
+              <cylinderGeometry args={[0.15, 0.15, 0.2, 16]} />
+              <meshBasicMaterial color={isSelected ? "#ffaa00" : "#aaaaaa"} wireframe />
+            </mesh>
+          </group>
+        )}
+      </group>
+
+      {target && !isActiveView && (
+        <TransformControls 
+          object={target}
+          mode={transformMode}
+          translationSnap={snap ? 1 : null}
+          rotationSnap={snap ? Math.PI / 12 : null}
+          scaleSnap={snap ? 0.5 : null}
+          onMouseUp={() => {
+            if (target) {
+              updateObject(obj.id, {
+                position: target.position.toArray(),
+                rotation: [target.rotation.x, target.rotation.y, target.rotation.z],
+                scale: target.scale.toArray(),
+              });
+            }
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function ObjectMesh({ obj }: { obj: SceneObject }) {
+  const { selectedId, setSelectedId, updateObject, transformMode, shadingMode } = useEditor3DStore();
+  const meshRef = useRef<THREE.Group>(null);
+  const isSelected = selectedId === obj.id;
+
+  // Geometry
+  const geometry = useMemo(() => {
+    let base: THREE.BufferGeometry;
+    switch (obj.type) {
+      case 'cube': base = new THREE.BoxGeometry(1, 1, 1); break;
+      case 'sphere': base = new THREE.SphereGeometry(0.5, 32, 32); break;
+      case 'cylinder': base = new THREE.CylinderGeometry(0.5, 0.5, 1, 32); break;
+      case 'cone': base = new THREE.ConeGeometry(0.5, 1, 32); break;
+      case 'plane': base = new THREE.PlaneGeometry(1, 1); break;
+      case 'torus': base = new THREE.TorusGeometry(0.5, 0.2, 16, 100); break;
+      case 'icosphere': base = new THREE.IcosahedronGeometry(0.5, 1); break;
+      default: base = new THREE.BoxGeometry(1, 1, 1); break;
+    }
+    return base;
+  }, [obj.type]);
+
+  const [snap, setSnap] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Control') setSnap(true); };
+    const handleKeyUp = (e: KeyboardEvent) => { if (e.key === 'Control') setSnap(false); };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); };
+  }, []);
+
+  // Modifiers simulation (basic visual for array/mirror)
+  const renderInstances = () => {
+    let instances = [{ position: new THREE.Vector3(), scale: new THREE.Vector3(1, 1, 1) }];
+
+    obj.modifiers.filter(m => m.enabled).forEach(mod => {
+      if (mod.type === 'array') {
+        const count = mod.count || 1;
+        const newInstances = [];
+        for (let i = 0; i < count; i++) {
+          instances.forEach(inst => {
+            const pos = inst.position.clone().add(new THREE.Vector3((mod.offsetX||0)*i, (mod.offsetY||0)*i, (mod.offsetZ||0)*i));
+            newInstances.push({ position: pos, scale: inst.scale.clone() });
+          });
+        }
+        instances = newInstances;
+      }
+      if (mod.type === 'mirror') {
+        const newInstances = [];
+        instances.forEach(inst => {
+          newInstances.push(inst); // original
+          if (mod.mirrorX) {
+            newInstances.push({ position: new THREE.Vector3(-inst.position.x, inst.position.y, inst.position.z), scale: new THREE.Vector3(-inst.scale.x, inst.scale.y, inst.scale.z) });
+          }
+          if (mod.mirrorY) {
+            newInstances.push({ position: new THREE.Vector3(inst.position.x, -inst.position.y, inst.position.z), scale: new THREE.Vector3(inst.scale.x, -inst.scale.y, inst.scale.z) });
+          }
+          if (mod.mirrorZ) {
+            newInstances.push({ position: new THREE.Vector3(inst.position.x, inst.position.y, -inst.position.z), scale: new THREE.Vector3(inst.scale.x, inst.scale.y, -inst.scale.z) });
+          }
+        });
+        instances = newInstances;
+      }
+    });
+
+    return (
+      <group
+        ref={meshRef}
+        position={obj.position}
+        rotation={obj.rotation}
+        scale={obj.scale}
+        onClick={(e) => { e.stopPropagation(); setSelectedId(obj.id); }}
+      >
+        {instances.map((inst, i) => (
+          <mesh 
+            key={i} 
+            geometry={geometry} 
+            position={inst.position} 
+            scale={inst.scale}
+            castShadow 
+            receiveShadow 
+          >
+            <Suspense fallback={<meshBasicMaterial color={obj.color} />}>
+              <TexturedMaterial obj={obj} isSelected={isSelected && i===0} shadingMode={shadingMode} />
+            </Suspense>
+          </mesh>
+        ))}
+        {/* Selection outline in solid/material mode */}
+        {isSelected && shadingMode !== 'wireframe' && (
+          <lineSegments>
+            <edgesGeometry args={[geometry]} />
+            <lineBasicMaterial color="#ffaa00" linewidth={2} depthTest={false} />
+          </lineSegments>
+        )}
+      </group>
     );
   };
 
-  // If not selected, just render the mesh
-  if (!isSelected) {
-    return renderMesh();
-  }
+  const [target, setTarget] = useState<THREE.Group | null>(null);
 
-  // If selected, wrap in TransformControls
+  useEffect(() => {
+    if (isSelected && meshRef.current) {
+      setTarget(meshRef.current);
+    } else {
+      setTarget(null);
+    }
+  }, [isSelected, obj.type, shadingMode]);
+
   return (
-    <TransformControls 
-      mode={transformMode}
-      onMouseUp={() => {
-        if (meshRef.current) {
-          updateObject(obj.id, {
-            position: meshRef.current.position.toArray(),
-            rotation: [meshRef.current.rotation.x, meshRef.current.rotation.y, meshRef.current.rotation.z],
-            scale: meshRef.current.scale.toArray(),
-          });
-        }
-      }}
-    >
-      {renderMesh()}
-    </TransformControls>
+    <>
+      {renderInstances()}
+      {target && (
+        <TransformControls 
+          object={target}
+          mode={transformMode}
+          translationSnap={snap ? 1 : null}
+          rotationSnap={snap ? Math.PI / 12 : null}
+          scaleSnap={snap ? 0.5 : null}
+          onMouseUp={() => {
+            if (target) {
+              updateObject(obj.id, {
+                position: target.position.toArray(),
+                rotation: [target.rotation.x, target.rotation.y, target.rotation.z],
+                scale: target.scale.toArray(),
+              });
+            }
+          }}
+        />
+      )}
+    </>
   );
 }
 
 export function SceneObjects() {
   const { objects, setSelectedId } = useEditor3DStore();
+  
+  const meshes = objects.filter(o => o.objectType === 'mesh' && o.visible && !o.hidden);
+  const cameras = objects.filter(o => o.objectType === 'camera' && o.visible && !o.hidden);
 
   return (
     <group onPointerMissed={() => setSelectedId(null)}>
-      {objects.map(obj => (
+      {meshes.map(obj => (
         <ObjectMesh key={obj.id} obj={obj} />
       ))}
+      {cameras.map(obj => (
+        <CameraObject key={obj.id} obj={obj} />
+      ))}
+      <LightObjects />
     </group>
   );
 }
