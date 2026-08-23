@@ -4,7 +4,7 @@ import { useEditor3DStore, PrimitiveType, LightType } from "@/stores/editor3d-st
 import { useState, useRef, useEffect } from "react";
 import { ChevronRight, Save, Layers, Edit3, Box } from "lucide-react";
 
-export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: () => void; saveStatus?: string; title?: string }) {
+export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: string) => void; saveStatus?: string; title?: string }) {
   const { 
     addObject, addLight, addCamera, undo, redo, 
     setShowLeftPanel, showLeftPanel, setShowNPanel, showNPanel,
@@ -110,12 +110,43 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: () => void;
       </div>
 
       {/* Project title */}
-      {title && (
-        <span style={{
-          fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)',
-          marginRight: '8px', maxWidth: '120px',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{title}</span>
+      {title !== undefined && (
+        <input
+          key={title}
+          defaultValue={title}
+          placeholder="Untitled Scene"
+          onChange={(e) => {
+            e.currentTarget.style.width = `${Math.max(10, e.target.value.length + 1)}ch`;
+          }}
+          onFocus={(e) => {
+             e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+             e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+             e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.borderColor = 'transparent';
+            e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
+            const newTitle = e.target.value.trim();
+            if (newTitle && newTitle !== title) {
+              onSave?.(newTitle);
+            } else {
+              e.target.value = title;
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur();
+          }}
+          style={{ 
+             fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', 
+             marginRight: '8px', 
+             background: 'transparent', border: '1px solid transparent', outline: 'none',
+             padding: '2px 6px', borderRadius: '4px',
+             width: `${Math.max(10, title.length + 1)}ch`,
+             transition: 'all 0.2s', fontFamily: 'inherit'
+          }}
+          title="Click to rename"
+        />
       )}
 
       <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.08)', marginRight: '6px', flexShrink: 0 }} />
@@ -239,7 +270,7 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: () => void;
 
       {/* Save button */}
       <button
-        onClick={onSave}
+        onClick={() => onSave?.()}
         title="Save (Ctrl+S)"
         style={{
           display: 'flex', alignItems: 'center', gap: '5px',

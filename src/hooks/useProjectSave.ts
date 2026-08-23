@@ -45,13 +45,14 @@ export function useProjectSave2D(projectId: string) {
 
     if (data) {
       usePixelEditorStore.setState({
-        pixels: { ...data.pixels },
+        layers: JSON.parse(JSON.stringify(data.layers)),
+        activeLayerId: data.activeLayerId,
         canvasWidth: data.canvasWidth as 8 | 16 | 32 | 48 | 64 | 128,
         canvasHeight: data.canvasHeight as 8 | 16 | 32 | 48 | 64 | 128,
         primaryColor: data.primaryColor,
         secondaryColor: data.secondaryColor,
         activePalette: data.activePalette,
-        history: [{ ...data.pixels }],
+        history: [{ layers: JSON.parse(JSON.stringify(data.layers)), activeLayerId: data.activeLayerId }],
         historyIndex: 0,
       });
     }
@@ -60,21 +61,25 @@ export function useProjectSave2D(projectId: string) {
     return () => clearTimeout(t);
   }, [resolvedId]);
 
-  const save = useCallback(() => {
+  const save = useCallback((overrideTitle?: string) => {
     if (!resolvedId) return;
     setSaveStatus("saving");
     const s = usePixelEditorStore.getState();
+    const saveTitle = overrideTitle !== undefined ? overrideTitle : title;
+    if (overrideTitle !== undefined) setTitle(overrideTitle);
+    
     saveProject2D(
       resolvedId,
       {
-        pixels: s.pixels,
+        layers: s.layers,
+        activeLayerId: s.activeLayerId,
         canvasWidth: s.canvasWidth,
         canvasHeight: s.canvasHeight,
         primaryColor: s.primaryColor,
         secondaryColor: s.secondaryColor,
         activePalette: s.activePalette,
       },
-      title
+      saveTitle
     );
     setSaveStatus("saved");
   }, [resolvedId, title]);
@@ -85,7 +90,8 @@ export function useProjectSave2D(projectId: string) {
     const unsub = usePixelEditorStore.subscribe((state, prev) => {
       if (!autosaveEnabledRef.current) return;
       if (
-        state.pixels === prev.pixels &&
+        state.layers === prev.layers &&
+        state.activeLayerId === prev.activeLayerId &&
         state.canvasWidth === prev.canvasWidth &&
         state.canvasHeight === prev.canvasHeight
       ) return;
@@ -157,10 +163,13 @@ export function useProjectSave3D(projectId: string) {
     return () => clearTimeout(t);
   }, [resolvedId]);
 
-  const save = useCallback(() => {
+  const save = useCallback((overrideTitle?: string) => {
     if (!resolvedId) return;
     setSaveStatus("saving");
     const s = useEditor3DStore.getState();
+    const saveTitle = overrideTitle !== undefined ? overrideTitle : title;
+    if (overrideTitle !== undefined) setTitle(overrideTitle);
+    
     saveProject3D(
       resolvedId,
       {
@@ -169,7 +178,7 @@ export function useProjectSave3D(projectId: string) {
         shadingMode: s.shadingMode,
         selectedId: s.selectedId,
       },
-      title
+      saveTitle
     );
     setSaveStatus("saved");
   }, [resolvedId, title]);

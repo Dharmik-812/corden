@@ -11,6 +11,14 @@ export type ObjectType = 'mesh' | 'light' | 'camera';
 export type EnvironmentPreset = 'studio' | 'sunset' | 'dawn' | 'night' | 'warehouse' | 'forest' | 'apartment' | 'city';
 export type InteractionMode = 'select' | 'cursor' | 'measure' | 'annotate';
 
+export interface PostFXSettings {
+  enabled: boolean;
+  bloom: { enabled: boolean; intensity: number; luminanceThreshold: number };
+  ssao: { enabled: boolean; intensity: number; radius: number };
+  dof: { enabled: boolean; focusDistance: number; focalLength: number; bokehScale: number };
+  chromaticAberration: { enabled: boolean; offset: [number, number] };
+}
+
 export interface Modifier {
   id: string;
   type: 'subdivision' | 'mirror' | 'solidify' | 'array' | 'wireframe';
@@ -192,6 +200,14 @@ export interface Editor3DState {
   updateModifier: (objectId: string, modifierId: string, updates: Partial<Modifier>) => void;
   toggleModifier: (objectId: string, modifierId: string) => void;
   applyModifier: (objectId: string, modifierId: string) => void;
+  // Post-Processing
+  postFX: PostFXSettings;
+  setPostFX: (fx: Partial<PostFXSettings>) => void;
+  updatePostFX: <K extends keyof PostFXSettings>(key: K, updates: Partial<PostFXSettings[K]>) => void;
+
+  // Physics
+  physicsEnabled: boolean;
+  setPhysicsEnabled: (v: boolean) => void;
 }
 
 const defaultCube: SceneObject = {
@@ -215,6 +231,31 @@ const defaultCube: SceneObject = {
 };
 
 export const useEditor3DStore = create<Editor3DState>((set, get) => ({
+  // Physics
+  physicsEnabled: false,
+  setPhysicsEnabled: (v) => set({ physicsEnabled: v }),
+
+  // Post-Processing
+  postFX: {
+    enabled: false,
+    bloom: { enabled: true, intensity: 1.5, luminanceThreshold: 0.8 },
+    ssao: { enabled: false, intensity: 1.0, radius: 0.1 },
+    dof: { enabled: false, focusDistance: 0.5, focalLength: 0.05, bokehScale: 2.0 },
+    chromaticAberration: { enabled: false, offset: [0.002, 0.002] },
+  },
+  setPostFX: (fx) => set((state) => ({ postFX: { ...state.postFX, ...fx } })),
+  updatePostFX: (key, updates) => set((state) => {
+    if (key === 'enabled') {
+      return { postFX: { ...state.postFX, enabled: updates as unknown as boolean } };
+    }
+    return {
+      postFX: {
+        ...state.postFX,
+        [key]: { ...(state.postFX[key] as any), ...updates }
+      }
+    };
+  }),
+
   objects: [defaultCube],
   setObjects: (objs) => set({ objects: objs }),
 

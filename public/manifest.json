@@ -1,0 +1,22 @@
+{
+  "name": "Corden Pixel & Voxel Editor",
+  "short_name": "Corden",
+  "description": "Professional 2D pixel art and 3D scene editor",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0c10",
+  "theme_color": "#4772b3",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

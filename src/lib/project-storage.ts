@@ -1,4 +1,5 @@
 import type { SceneObject, EnvironmentPreset, ShadingMode } from "@/stores/editor3d-store";
+import type { Layer } from "@/stores/pixelEditor-store";
 
 export type ProjectType = "2d" | "3d";
 
@@ -12,7 +13,8 @@ export interface ProjectMeta {
 }
 
 export interface Project2DData {
-  pixels: Record<string, string>;
+  layers: Layer[];
+  activeLayerId: string;
   canvasWidth: number;
   canvasHeight: number;
   primaryColor: string;
@@ -79,8 +81,10 @@ function default2DPresetData(): Project2DData {
       }
     });
   });
+  const layerId = "layer-preset";
   return {
-    pixels,
+    layers: [{ id: layerId, name: "Background", pixels, visible: true, opacity: 1, locked: false }],
+    activeLayerId: layerId,
     canvasWidth: 32,
     canvasHeight: 32,
     primaryColor: "#FFEC27",
@@ -191,7 +195,14 @@ export function loadProject2D(id: string): Project2DData | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(dataKey(id));
-    if (raw) return JSON.parse(raw) as Project2DData;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (!parsed.layers && parsed.pixels) {
+        parsed.layers = [{ id: "layer-1", name: "Layer 1", pixels: parsed.pixels, visible: true, opacity: 1, locked: false }];
+        parsed.activeLayerId = "layer-1";
+      }
+      return parsed as Project2DData;
+    }
     if (id === PRESET_2D_ID) return default2DPresetData();
     return null;
   } catch {
@@ -262,8 +273,10 @@ export function createProject(type: ProjectType, title?: string): ProjectMeta {
   writeIndex(projects);
 
   if (type === "2d") {
+    const layerId = "layer-1";
     saveProject2D(id, {
-      pixels: {},
+      layers: [{ id: layerId, name: "Layer 1", pixels: {}, visible: true, opacity: 1, locked: false }],
+      activeLayerId: layerId,
       canvasWidth: 32,
       canvasHeight: 32,
       primaryColor: "#ffffff",

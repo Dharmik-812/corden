@@ -7,6 +7,9 @@ import { useEditor3DStore } from "@/stores/editor3d-store";
 import { useEffect, useRef, Suspense } from "react";
 import * as THREE from "three";
 import { GLTFExporter } from "three-stdlib";
+import { EffectComposer, Bloom, SSAO, DepthOfField, ChromaticAberration } from "@react-three/postprocessing";
+import { BlendFunction } from "postprocessing";
+import { Physics } from "@react-three/rapier";
 
 function CameraController() {
   const { camera, gl } = useThree();
@@ -276,7 +279,7 @@ export function Viewport3D() {
     showLeftPanel, setShowLeftPanel, showRightPanel, setShowRightPanel,
     showTimeline, setShowTimeline, addKeyframe, setIsPlaying, isPlaying,
     selectionMode, setSelectionMode, commitHistory, setAddMenuPosition: setMenu,
-    showAxes, viewPreset, addModifier,
+    showAxes, viewPreset, addModifier, postFX, physicsEnabled
   } = useEditor3DStore();
 
   useEffect(() => {
@@ -431,7 +434,13 @@ export function Viewport3D() {
 
         {/* Scene objects */}
         <Suspense fallback={null}>
-          <SceneObjects />
+          {physicsEnabled ? (
+            <Physics>
+              <SceneObjects />
+            </Physics>
+          ) : (
+            <SceneObjects />
+          )}
         </Suspense>
 
         {/* 3D Cursor */}
@@ -452,6 +461,40 @@ export function Viewport3D() {
             labelColor="white"
           />
         </GizmoHelper>
+
+        {/* Post-Processing */}
+        {postFX.enabled && (
+          <EffectComposer multisampling={4}>
+            {postFX.bloom.enabled && (
+              <Bloom
+                intensity={postFX.bloom.intensity}
+                luminanceThreshold={postFX.bloom.luminanceThreshold}
+                luminanceSmoothing={0.9}
+                blendFunction={BlendFunction.SCREEN}
+              />
+            )}
+            {postFX.ssao.enabled && (
+              <SSAO
+                samples={31}
+                radius={postFX.ssao.radius}
+                intensity={postFX.ssao.intensity}
+                luminanceInfluence={0.5}
+              />
+            )}
+            {postFX.dof.enabled && (
+              <DepthOfField
+                focusDistance={postFX.dof.focusDistance}
+                focalLength={postFX.dof.focalLength}
+                bokehScale={postFX.dof.bokehScale}
+              />
+            )}
+            {postFX.chromaticAberration.enabled && (
+              <ChromaticAberration
+                offset={[postFX.chromaticAberration.offset[0], postFX.chromaticAberration.offset[1]] as any}
+              />
+            )}
+          </EffectComposer>
+        )}
       </Canvas>
 
       {/* Edit Mode Indicator — top center pill */}

@@ -1,0 +1,168 @@
+.editorContainer {
+  position: fixed;
+  top: var(--navbar-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #080a0f;
+}
+
+.workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.canvasArea {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Left Toolbar ─────────────────────────────────────────────── */
+.toolbarContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 10px;
+  z-index: 40;
+  overflow-y: auto;
+  overflow-x: visible;
+  scrollbar-width: none;
+  background: rgba(8, 9, 14, 0.92);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.toolbarContainer::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Right Sidebar ────────────────────────────────────────────── */
+.sidebarContainer {
+  width: 264px;
+  min-width: 264px;
+  background: rgba(8, 8, 12, 0.96);
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 40;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Bottom Timeline ──────────────────────────────────────────── */
+.timelineContainer {
+  z-index: 40;
+  flex-shrink: 0;
+}
+
+/* ── Mobile toggle bar ───────────────────────────────────────── */
+.mobileToggleBar {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 50;
+  gap: 8px;
+}
+
+.mobileToggleBtn {
+  background: rgba(16, 18, 24, 0.9);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 9px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  transition: all 0.15s;
+}
+
+.mobileToggleBtn:hover {
+  color: #fff;
+  background: rgba(74, 144, 226, 0.2);
+  border-color: rgba(74, 144, 226, 0.4);
+}
+
+/* ── Mobile overlay ───────────────────────────────────────────── */
+.mobileOverlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  z-index: 45;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Responsive breakpoints
+   ══════════════════════════════════════════════════════════════ */
+
+/* Tablet – shrink toolbar, keep sidebar but narrower */
+@media (max-width: 1100px) {
+  .sidebarContainer {
+    width: 230px;
+    min-width: 230px;
+  }
+}
+
+/* Mobile – stack toolbar at bottom, sidebar becomes a drawer */
+@media (max-width: 768px) {
+  .workspace {
+    flex-direction: column;
+  }
+
+  /* Toolbar becomes a horizontal bottom strip inside the workspace */
+  .toolbarContainer {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 8px 10px;
+    border-right: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    justify-content: center;
+    background: rgba(8, 9, 14, 0.97);
+    order: 2;
+  }
+
+  /* Canvas area takes all remaining vertical space */
+  .canvasArea {
+    order: 1;
+    flex: 1;
+  }
+
+  /* Sidebar becomes an off-canvas drawer from the right */
+  .sidebarContainer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    transform: translateX(110%);
+    width: 280px;
+    min-width: 280px;
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.7);
+    z-index: 50;
+  }
+
+  .sidebarContainer.open {
+    transform: translateX(0);
+  }
+
+  .mobileToggleBar {
+    display: flex;
+  }
+
+  .mobileOverlay.open {
+    display: block;
+  }
+}

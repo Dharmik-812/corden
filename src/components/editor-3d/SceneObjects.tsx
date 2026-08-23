@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { useRef, useEffect, useState, useMemo, Suspense } from "react";
 import { LightObjects } from "./LightObjects";
 import { TexturedMaterial } from "./TexturedMaterial";
+import { RigidBody } from "@react-three/rapier";
 
 function CameraObject({ obj }: { obj: SceneObject }) {
   const { selectedId, setSelectedId, updateObject, transformMode, viewPreset } = useEditor3DStore();
@@ -88,7 +89,7 @@ function CameraObject({ obj }: { obj: SceneObject }) {
 }
 
 function ObjectMesh({ obj }: { obj: SceneObject }) {
-  const { selectedId, setSelectedId, updateObject, transformMode, shadingMode } = useEditor3DStore();
+  const { selectedId, setSelectedId, updateObject, transformMode, shadingMode, physicsEnabled } = useEditor3DStore();
   const meshRef = useRef<THREE.Group>(null);
   const isSelected = selectedId === obj.id;
 
@@ -191,11 +192,11 @@ function ObjectMesh({ obj }: { obj: SceneObject }) {
       }
     });
 
-    return (
+    const content = (
       <group
-        ref={meshRef}
-        position={obj.position}
-        rotation={obj.rotation}
+        ref={!physicsEnabled ? meshRef : undefined}
+        position={!physicsEnabled ? obj.position : [0, 0, 0]}
+        rotation={!physicsEnabled ? obj.rotation : [0, 0, 0]}
         scale={obj.scale}
         userData={{ isExportable: true }}
         onClick={(e) => { e.stopPropagation(); setSelectedId(obj.id); }}
@@ -223,6 +224,17 @@ function ObjectMesh({ obj }: { obj: SceneObject }) {
         )}
       </group>
     );
+
+    if (physicsEnabled) {
+      const isFixed = obj.type === 'plane' || obj.position[1] <= 0.25;
+      return (
+        <RigidBody type={isFixed ? 'fixed' : 'dynamic'} colliders="hull" position={obj.position} rotation={obj.rotation}>
+          {content}
+        </RigidBody>
+      );
+    }
+
+    return content;
   };
 
   const [target, setTarget] = useState<THREE.Group | null>(null);
@@ -238,7 +250,7 @@ function ObjectMesh({ obj }: { obj: SceneObject }) {
   return (
     <>
       {renderInstances()}
-      {target && (
+      {target && !physicsEnabled && (
         <TransformControls 
           object={target}
           mode={transformMode}
@@ -268,6 +280,15 @@ export function SceneObjects() {
 
   return (
     <group onPointerMissed={() => setSelectedId(null)}>
+      {/* Invisible floor for physics so things don't fall forever if there's no ground plane */}
+      {useEditor3DStore.getState().physicsEnabled && (
+        <RigidBody type="fixed" position={[0, -0.5, 0]}>
+          <mesh visible={false}>
+            <boxGeometry args={[100, 1, 100]} />
+            <meshBasicMaterial />
+          </mesh>
+        </RigidBody>
+      )}
       {meshes.map(obj => (
         <ObjectMesh key={obj.id} obj={obj} />
       ))}

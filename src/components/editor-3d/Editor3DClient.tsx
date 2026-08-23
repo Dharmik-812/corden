@@ -11,10 +11,62 @@ import { ShaderPie } from "@/components/editor-3d/ShaderPie";
 import { AddMenu } from "@/components/editor-3d/AddMenu";
 import { TopMenuBar } from "@/components/editor-3d/TopMenuBar";
 import { useProjectSave3D } from "@/hooks/useProjectSave";
+import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { SceneObject } from "@/stores/editor3d-store";
 
 export function Editor3DClient({ projectId }: { projectId: string }) {
-  const { showLeftPanel, showRightPanel, showNPanel, showTimeline } = useEditor3DStore();
+  const { showLeftPanel, showRightPanel, showNPanel, showTimeline, setObjects, objects, commitHistory } = useEditor3DStore();
   const { resolvedId, saveStatus, save, title } = useProjectSave3D(projectId);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const importKey = searchParams.get('voxel_import');
+    if (importKey) {
+      const data = localStorage.getItem(importKey);
+      if (data) {
+        try {
+          const voxels: {x:number, y:number, z:number, color:string}[] = JSON.parse(data);
+          const newObjects: SceneObject[] = voxels.map((v, i) => ({
+            id: `voxel_${Date.now()}_${i}`,
+            name: `Voxel ${i}`,
+            type: 'cube',
+            objectType: 'mesh',
+            // Scale and position so 1 pixel = 0.5 units
+            position: [(v.x - 16) * 0.5, (v.y) * 0.5, 0],
+            rotation: [0, 0, 0],
+            scale: [0.5, 0.5, 0.5],
+            color: v.color,
+            roughness: 0.8,
+            metalness: 0,
+            visible: true,
+            hidden: false,
+            renderVisible: true,
+            locked: false,
+            smoothShading: false,
+            modifiers: [],
+            keyframes: [],
+          }));
+          
+          commitHistory();
+          // Add voxels to scene, replacing the default cube if it's untouched
+          if (objects.length === 1 && objects[0].type === 'cube' && objects[0].position[0] === 0) {
+            setObjects(newObjects);
+          } else {
+            setObjects([...objects, ...newObjects]);
+          }
+          
+          // Cleanup
+          localStorage.removeItem(importKey);
+          
+          // Clean up URL
+          window.history.replaceState({}, '', `/editor/3d/${projectId}`);
+        } catch (e) {
+          console.error("Failed to parse voxel import", e);
+        }
+      }
+    }
+  }, [searchParams, projectId]);
 
   if (!resolvedId) {
     return (

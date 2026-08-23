@@ -101,14 +101,99 @@ export function PropertiesEditor() {
   const obj = objects.find(o => o.id === selectedId);
 
   if (!obj) {
+    const { postFX, setPostFX, updatePostFX, physicsEnabled, setPhysicsEnabled } = useEditor3DStore();
     return (
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        height: '100%', gap: '8px',
-        color: 'rgba(255,255,255,0.2)', fontSize: '0.72rem',
-      }}>
-        <Box size={24} color="rgba(255,255,255,0.1)" />
-        <span>No object selected</span>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        <div style={{
+          padding: '10px 12px 8px',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.65)' }}>
+            Scene Properties
+          </span>
+        </div>
+        
+        <div style={{ flex: 1, overflowY: 'auto', padding: '10px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          
+          {/* POST-PROCESSING SECTION */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '3px 0' }}>
+              <input type="checkbox" checked={postFX.enabled} onChange={e => setPostFX({ enabled: e.target.checked })} style={{ width: '14px', height: '14px', accentColor: '#4772b3' }} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fff' }}>Enable Post-Processing</span>
+            </label>
+
+            {postFX.enabled && (
+              <div style={{ paddingLeft: '12px', borderLeft: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Bloom */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={postFX.bloom.enabled} onChange={e => updatePostFX('bloom', { enabled: e.target.checked })} />
+                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)' }}>Bloom</span>
+                  </label>
+                  {postFX.bloom.enabled && (
+                    <div style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)' }}>Intensity</span>
+                        <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)' }}>{postFX.bloom.intensity.toFixed(1)}</span>
+                      </div>
+                      <input type="range" min="0" max="5" step="0.1" value={postFX.bloom.intensity} onChange={e => updatePostFX('bloom', { intensity: parseFloat(e.target.value) })} style={{ accentColor: '#ffb400' }} />
+                    </div>
+                  )}
+                </div>
+
+                {/* SSAO */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={postFX.ssao.enabled} onChange={e => updatePostFX('ssao', { enabled: e.target.checked })} />
+                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)' }}>Ambient Occlusion (SSAO)</span>
+                  </label>
+                  {postFX.ssao.enabled && (
+                    <div style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)' }}>Intensity</span>
+                        <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)' }}>{postFX.ssao.intensity.toFixed(1)}</span>
+                      </div>
+                      <input type="range" min="0" max="5" step="0.1" value={postFX.ssao.intensity} onChange={e => updatePostFX('ssao', { intensity: parseFloat(e.target.value) })} style={{ accentColor: '#4a90e2' }} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Depth of Field */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={postFX.dof.enabled} onChange={e => updatePostFX('dof', { enabled: e.target.checked })} />
+                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)' }}>Depth of Field</span>
+                  </label>
+                </div>
+
+                {/* Chromatic Aberration */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={postFX.chromaticAberration.enabled} onChange={e => updatePostFX('chromaticAberration', { enabled: e.target.checked })} />
+                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)' }}>Chromatic Aberration</span>
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)' }} />
+
+          {/* PHYSICS SECTION */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '3px 0' }}>
+              <input type="checkbox" checked={physicsEnabled} onChange={e => setPhysicsEnabled(e.target.checked)} style={{ width: '14px', height: '14px', accentColor: '#6bffc0' }} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fff' }}>Enable Physics Engine</span>
+            </label>
+            {physicsEnabled && (
+              <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', paddingLeft: '22px' }}>
+                Objects will fall and collide. Static objects will stay in place.
+              </span>
+            )}
+          </div>
+
+        </div>
       </div>
     );
   }

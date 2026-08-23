@@ -20,7 +20,16 @@ export const metadata: Metadata = {
   description: "A browser-based 2D + 3D architectural workspace. Draft, model, create.",
   icons: {
     icon: "/icon.svg",
+    apple: "/icon-192x192.png",
   },
+  manifest: "/manifest.json",
+};
+
+export const viewport = {
+  themeColor: "#4772b3",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({

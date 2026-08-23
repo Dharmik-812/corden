@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { usePixelEditorStore, PALETTES } from "@/stores/pixelEditor-store";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Pipette, RotateCcw, Plus } from "lucide-react";
+import { CustomPaletteManager } from "./CustomPaletteManager";
 
 const RECENTLY_USED_MAX = 16;
 
@@ -11,158 +12,197 @@ export function ColorPalette() {
     primaryColor, secondaryColor,
     setPrimaryColor, setSecondaryColor,
     activePalette, setActivePalette,
+    customPalettes, removeColorFromPalette, addColorToPalette,
   } = usePixelEditorStore();
+
+  const isCustomPalette = activePalette in customPalettes;
 
   const [recentColors, setRecentColors] = useState<string[]>([]);
   const [showPaletteMenu, setShowPaletteMenu] = useState(false);
-  const [activeColorTarget, setActiveColorTarget] = useState<'primary' | 'secondary'>('primary');
+  const [activeColorTarget, setActiveColorTarget] = useState<"primary" | "secondary">("primary");
 
-  const handlePaletteColorClick = (color: string, button: 'left' | 'right') => {
-    if (button === 'right') {
-      setSecondaryColor(color);
-    } else {
-      setPrimaryColor(color);
-    }
-    // Add to recently used
-    setRecentColors((prev) => {
-      const filtered = prev.filter((c) => c !== color);
+  const handlePaletteColorClick = (color: string, btn: "left" | "right") => {
+    if (btn === "right") setSecondaryColor(color);
+    else setPrimaryColor(color);
+
+    setRecentColors(prev => {
+      const filtered = prev.filter(c => c !== color);
       return [color, ...filtered].slice(0, RECENTLY_USED_MAX);
     });
   };
 
-  const palette = PALETTES[activePalette] ?? PALETTES['Pico-8'];
-
-  const panelStyle: React.CSSProperties = {
-    height: '100%', display: 'flex', flexDirection: 'column', width: '100%',
-    fontFamily: 'var(--font-mono)',
-  };
-
-  const sectionHeaderStyle: React.CSSProperties = {
-    padding: '14px 18px 10px',
-    fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em',
-    textTransform: 'uppercase', color: 'var(--text-tertiary)',
-  };
-
-  const swatchGridStyle: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '5px',
-    padding: '0 16px',
-  };
+  const palette = PALETTES[activePalette] ?? PALETTES["Pico-8"];
+  const activeColor = activeColorTarget === "primary" ? primaryColor : secondaryColor;
+  const setActiveColor = activeColorTarget === "primary" ? setPrimaryColor : setSecondaryColor;
 
   return (
-    <div style={panelStyle}>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", fontFamily: "var(--font-sans)" }}>
 
-      {/* Active Colors */}
-      <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.04)', background: 'rgba(0,0,0,0.2)' }}>
-        <div style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: '12px' }}>Active Colors</div>
-        
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
-          {/* Background swatch (behind) */}
-          <div
-            title="Secondary / Background (right click palette to set)"
-            style={{
-              width: '36px', height: '36px', borderRadius: '8px', cursor: 'pointer',
-              background: secondaryColor,
-              border: '2px solid rgba(255,255,255,0.1)',
-              marginLeft: '14px', marginBottom: '-8px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-              transition: 'transform 0.15s',
-              zIndex: 0,
-              position: 'relative',
-            }}
-            onClick={() => setActiveColorTarget('secondary')}
-          />
-          {/* Foreground swatch (front) */}
-          <div
-            title="Primary / Foreground color"
-            style={{
-              width: '44px', height: '44px', borderRadius: '10px', cursor: 'pointer',
-              background: primaryColor,
-              border: '2px solid rgba(255,255,255,0.2)',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-              position: 'relative', zIndex: 1, marginLeft: '-22px',
-              transition: 'transform 0.15s',
-            }}
-            onClick={() => setActiveColorTarget('primary')}
-          />
-          
-          {/* Color input */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)' }}>
-              {activeColorTarget === 'primary' ? 'Foreground' : 'Background'}
+      {/* ── Active Color Selector ── */}
+      <div style={{
+        padding: "14px 16px",
+        borderBottom: "1px solid rgba(255,255,255,0.05)",
+        background: "linear-gradient(180deg, rgba(20,22,30,0.6) 0%, transparent 100%)",
+        flexShrink: 0,
+      }}>
+        <div style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: "12px" }}>
+          Colors
+        </div>
+
+        {/* Stacked color swatches */}
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <div style={{ position: "relative", width: "64px", height: "52px", flexShrink: 0 }}>
+            {/* Secondary (background) swatch */}
+            <div
+              title="Secondary Color (right-click palette to set)"
+              onClick={() => setActiveColorTarget("secondary")}
+              style={{
+                position: "absolute", bottom: 0, right: 0,
+                width: "38px", height: "38px", borderRadius: "9px",
+                background: secondaryColor,
+                border: `2px solid ${activeColorTarget === "secondary" ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.12)"}`,
+                cursor: "pointer", transition: "all 0.15s",
+                boxShadow: activeColorTarget === "secondary" ? `0 0 0 2px rgba(74,144,226,0.5)` : "0 2px 8px rgba(0,0,0,0.5)",
+              }}
+            />
+            {/* Primary (foreground) swatch */}
+            <div
+              title="Primary Color"
+              onClick={() => setActiveColorTarget("primary")}
+              style={{
+                position: "absolute", top: 0, left: 0,
+                width: "44px", height: "44px", borderRadius: "11px",
+                background: primaryColor,
+                border: `2px solid ${activeColorTarget === "primary" ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.2)"}`,
+                cursor: "pointer", transition: "all 0.15s",
+                boxShadow: activeColorTarget === "primary" ? `0 0 0 2px rgba(74,144,226,0.6), 0 4px 14px rgba(0,0,0,0.6)` : "0 4px 14px rgba(0,0,0,0.6)",
+                zIndex: 1,
+              }}
+            />
+          </div>
+
+          {/* Active color input */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+              <span style={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.35)" }}>
+                {activeColorTarget === "primary" ? "↖ Primary" : "↘ Secondary"}
+              </span>
+              <button
+                title="Swap colors"
+                onClick={() => {
+                  const tmp = primaryColor;
+                  setPrimaryColor(secondaryColor);
+                  setSecondaryColor(tmp);
+                }}
+                style={{
+                  marginLeft: "auto", background: "transparent", border: "none",
+                  color: "rgba(255,255,255,0.3)", cursor: "pointer", padding: "2px",
+                  borderRadius: "4px", display: "flex",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.3)"; e.currentTarget.style.background = "transparent"; }}
+              >
+                <RotateCcw size={11} />
+              </button>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{ position: 'relative', width: '28px', height: '28px', borderRadius: '6px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0 }}>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              {/* Native color picker trigger */}
+              <label style={{ position: "relative", width: "30px", height: "30px", borderRadius: "7px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.12)", flexShrink: 0, cursor: "pointer" }}>
+                <div style={{ width: "100%", height: "100%", background: activeColor }} />
                 <input
                   type="color"
-                  value={activeColorTarget === 'primary' ? primaryColor : secondaryColor}
-                  onChange={(e) => {
-                    if (activeColorTarget === 'primary') setPrimaryColor(e.target.value);
-                    else setSecondaryColor(e.target.value);
-                  }}
-                  style={{ position: 'absolute', top: '-8px', left: '-8px', width: '44px', height: '44px', cursor: 'pointer', border: 'none', padding: 0 }}
+                  value={activeColor}
+                  onChange={e => setActiveColor(e.target.value)}
+                  style={{ position: "absolute", opacity: 0, top: 0, left: 0, width: "100%", height: "100%", cursor: "pointer" }}
                 />
-              </div>
-              <span style={{
-                flex: 1, fontFamily: 'var(--font-mono)', fontSize: '0.7rem',
-                color: 'var(--text-primary)', letterSpacing: '0.05em',
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
-                borderRadius: '6px', padding: '4px 8px',
-              }}>
-                {activeColorTarget === 'primary' ? primaryColor : secondaryColor}
-              </span>
+                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s", background: "rgba(0,0,0,0.4)" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "0"; }}
+                >
+                  <Pipette size={10} color="#fff" />
+                </div>
+              </label>
+
+              {/* Hex input */}
+              <input
+                type="text"
+                value={activeColor}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (/^#[0-9a-fA-F]{0,6}$/.test(v)) setActiveColor(v);
+                }}
+                style={{
+                  flex: 1, fontFamily: "var(--font-mono)", fontSize: "0.72rem",
+                  color: "var(--text-primary)", letterSpacing: "0.04em",
+                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: "7px", padding: "5px 8px", outline: "none",
+                  transition: "border-color 0.15s",
+                }}
+                onFocus={e => { e.currentTarget.style.borderColor = "rgba(74,144,226,0.5)"; }}
+                onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
+              />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Palette selector */}
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-        <div style={{ position: 'relative' }}>
+      {/* ── Palette Selector ── */}
+      <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
+        <div style={{ position: "relative" }}>
           <button
-            onClick={() => setShowPaletteMenu((v) => !v)}
+            onClick={() => setShowPaletteMenu(v => !v)}
             style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)',
-              background: showPaletteMenu ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
-              color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem',
-              cursor: 'pointer', transition: 'background 0.15s',
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "8px 12px", borderRadius: "9px",
+              border: `1px solid ${showPaletteMenu ? "rgba(74,144,226,0.4)" : "rgba(255,255,255,0.08)"}`,
+              background: showPaletteMenu ? "rgba(74,144,226,0.08)" : "rgba(255,255,255,0.03)",
+              color: "var(--text-primary)", fontFamily: "var(--font-mono)", fontSize: "0.75rem",
+              cursor: "pointer", transition: "all 0.15s",
             }}
-            onMouseEnter={(e) => { if (!showPaletteMenu) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-            onMouseLeave={(e) => { if (!showPaletteMenu) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
           >
-            <span>{activePalette}</span>
-            <ChevronDown size={14} style={{ transform: showPaletteMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {/* Palette preview dots */}
+              <div style={{ display: "flex", gap: "2px" }}>
+                {palette.slice(0, 6).map((c, i) => (
+                  <div key={i} style={{ width: "7px", height: "7px", borderRadius: "2px", background: c }} />
+                ))}
+              </div>
+              <span>{activePalette}</span>
+            </div>
+            <ChevronDown size={13} style={{ transform: showPaletteMenu ? "rotate(180deg)" : "none", transition: "transform 0.2s", opacity: 0.5 }} />
           </button>
+
           {showPaletteMenu && (
             <div style={{
-              position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', zIndex: 100,
-              background: 'rgba(10,10,14,0.98)', backdropFilter: 'blur(32px)',
-              border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px',
-              padding: '6px', boxShadow: '0 8px 32px rgba(0,0,0,0.8)',
+              position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 200,
+              background: "rgba(10,11,16,0.98)", backdropFilter: "blur(40px)",
+              border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px",
+              padding: "6px", boxShadow: "0 16px 48px rgba(0,0,0,0.8)",
+              maxHeight: "240px", overflowY: "auto",
             }}>
-              {Object.keys(PALETTES).map((name) => (
+              {Object.keys(PALETTES).map(name => (
                 <button
                   key={name}
                   onClick={() => { setActivePalette(name); setShowPaletteMenu(false); }}
                   style={{
-                    width: '100%', padding: '8px 10px', borderRadius: '6px', border: 'none',
-                    textAlign: 'left', cursor: 'pointer', fontSize: '0.75rem',
-                    fontFamily: 'var(--font-mono)',
-                    background: activePalette === name ? 'rgba(74,144,226,0.15)' : 'transparent',
-                    color: activePalette === name ? 'var(--accent-primary)' : 'var(--text-primary)',
-                    transition: 'background 0.15s', display: 'flex', alignItems: 'center', gap: '10px',
+                    width: "100%", padding: "8px 10px", borderRadius: "8px", border: "none",
+                    textAlign: "left", cursor: "pointer", fontSize: "0.73rem",
+                    fontFamily: "var(--font-mono)",
+                    background: activePalette === name ? "rgba(74,144,226,0.15)" : "transparent",
+                    color: activePalette === name ? "var(--accent-primary)" : "var(--text-primary)",
+                    transition: "background 0.12s", display: "flex", alignItems: "center", gap: "10px",
                   }}
-                  onMouseEnter={(e) => { if (activePalette !== name) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-                  onMouseLeave={(e) => { if (activePalette !== name) e.currentTarget.style.background = 'transparent'; }}
+                  onMouseEnter={e => { if (activePalette !== name) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                  onMouseLeave={e => { if (activePalette !== name) e.currentTarget.style.background = "transparent"; }}
                 >
-                  <div style={{ display: 'flex', gap: '2px' }}>
-                    {PALETTES[name].slice(0, 5).map((c, i) => (
-                      <div key={i} style={{ width: '8px', height: '8px', borderRadius: '2px', background: c }} />
+                  <div style={{ display: "flex", gap: "2px", flexShrink: 0 }}>
+                    {PALETTES[name].slice(0, 6).map((c, i) => (
+                      <div key={i} style={{ width: "8px", height: "8px", borderRadius: "2px", background: c }} />
                     ))}
                   </div>
-                  {name} <span style={{ color: 'var(--text-tertiary)', fontSize: '0.65rem' }}>({PALETTES[name].length})</span>
+                  <span style={{ flex: 1 }}>{name}</span>
+                  <span style={{ color: "rgba(255,255,255,0.25)", fontSize: "0.62rem" }}>{PALETTES[name].length}</span>
                 </button>
               ))}
             </div>
@@ -170,57 +210,106 @@ export function ColorPalette() {
         </div>
       </div>
 
-      {/* Color swatches */}
-      <div style={{ overflow: 'auto', flex: 1 }}>
-        <div style={sectionHeaderStyle}>Palette</div>
-        <div style={swatchGridStyle}>
-          {palette.map((color) => (
-            <div
-              key={color}
-              title={`${color} — Left: set primary, Right: set secondary`}
-              onClick={() => handlePaletteColorClick(color, 'left')}
-              onContextMenu={(e) => { e.preventDefault(); handlePaletteColorClick(color, 'right'); }}
-              style={{
-                aspectRatio: '1', borderRadius: '6px', cursor: 'pointer',
-                background: color,
-                border: primaryColor === color
-                  ? '2px solid #fff'
-                  : secondaryColor === color
-                  ? '2px solid rgba(255,255,255,0.4)'
-                  : '1px solid rgba(255,255,255,0.06)',
-                boxShadow: primaryColor === color ? '0 0 0 2px rgba(74,144,226,0.5)' : 'none',
-                transition: 'transform 0.1s, box-shadow 0.1s',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.15)'; e.currentTarget.style.zIndex = '10'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.zIndex = '0'; }}
-            />
-          ))}
+      {/* ── Palette Swatches + Custom Manager ── */}
+      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
+        {/* Palette grid */}
+        <div style={{ padding: "10px 14px" }}>
+          <div style={{ fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: "8px" }}>
+            Swatches {isCustomPalette && <span style={{ fontWeight: 400, textTransform: "none", color: "rgba(255,255,255,0.18)" }}>— right-click to remove</span>}
+          </div>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(22px, 1fr))",
+            gap: "4px",
+          }}>
+            {palette.map((color, idx) => (
+              <div
+                key={`${color}-${idx}`}
+                title={isCustomPalette ? `${color} — L: primary  R: remove` : `${color} — L: primary  R: secondary`}
+                onClick={() => handlePaletteColorClick(color, "left")}
+                onContextMenu={e => {
+                  e.preventDefault();
+                  if (isCustomPalette) removeColorFromPalette(activePalette, idx);
+                  else handlePaletteColorClick(color, "right");
+                }}
+                style={{
+                  aspectRatio: "1", borderRadius: "5px", cursor: "pointer",
+                  background: color,
+                  border: primaryColor === color
+                    ? "2px solid rgba(255,255,255,0.9)"
+                    : secondaryColor === color
+                    ? "2px solid rgba(255,255,255,0.4)"
+                    : "1px solid rgba(255,255,255,0.07)",
+                  outline: primaryColor === color ? "2px solid rgba(74,144,226,0.55)" : "none",
+                  outlineOffset: "2px",
+                  transition: "transform 0.1s, outline 0.1s",
+                  boxSizing: "border-box",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.2)"; e.currentTarget.style.zIndex = "10"; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.zIndex = "0"; }}
+              />
+            ))}
+
+            {/* Add current color to custom palette */}
+            {isCustomPalette && (
+              <button
+                onClick={() => addColorToPalette(activePalette, primaryColor)}
+                title={`Add ${primaryColor} to palette`}
+                style={{
+                  aspectRatio: "1", borderRadius: "5px",
+                  border: "1.5px dashed rgba(255,255,255,0.2)", background: "transparent",
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "rgba(255,255,255,0.3)", padding: 0, transition: "all 0.12s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = primaryColor; e.currentTarget.style.color = primaryColor; e.currentTarget.style.background = `${primaryColor}22`; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; e.currentTarget.style.color = "rgba(255,255,255,0.3)"; e.currentTarget.style.background = "transparent"; }}
+              >
+                <Plus size={11} />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Recently Used */}
+        {/* Recently used */}
         {recentColors.length > 0 && (
-          <>
-            <div style={sectionHeaderStyle}>Recent</div>
-            <div style={swatchGridStyle}>
+          <div style={{ padding: "0 14px 10px" }}>
+            <div style={{ fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: "8px" }}>
+              Recently Used
+            </div>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(22px, 1fr))",
+              gap: "4px",
+            }}>
               {recentColors.map((color, i) => (
                 <div
-                  key={`${color}-${i}`}
+                  key={i}
                   title={color}
-                  onClick={() => handlePaletteColorClick(color, 'left')}
-                  onContextMenu={(e) => { e.preventDefault(); handlePaletteColorClick(color, 'right'); }}
+                  onClick={() => handlePaletteColorClick(color, "left")}
+                  onContextMenu={e => { e.preventDefault(); handlePaletteColorClick(color, "right"); }}
                   style={{
-                    aspectRatio: '1', borderRadius: '6px', cursor: 'pointer',
-                    background: color,
-                    border: primaryColor === color ? '2px solid #fff' : '1px solid rgba(255,255,255,0.06)',
-                    transition: 'transform 0.1s',
+                    aspectRatio: "1", borderRadius: "5px", cursor: "pointer",
+                    background: color, border: "1px solid rgba(255,255,255,0.07)",
+                    transition: "transform 0.1s",
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.15)'}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.2)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
                 />
               ))}
             </div>
-          </>
+          </div>
         )}
+
+        {/* Divider */}
+        <div style={{ height: "1px", background: "rgba(255,255,255,0.05)", margin: "4px 0" }} />
+
+        {/* Custom Palette Manager */}
+        <div style={{ padding: "12px 14px 16px" }}>
+          <div style={{ fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: "10px" }}>
+            Custom Palettes
+          </div>
+          <CustomPaletteManager />
+        </div>
       </div>
     </div>
   );
