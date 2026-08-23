@@ -20,15 +20,18 @@ export function SplashScreen({ show }: { show: boolean }) {
     const start = Date.now();
     const duration = 2200;
 
+    let frameId: number;
+
     const tick = () => {
       const elapsed = Date.now() - start;
       const pct = Math.min(100, Math.round((elapsed / duration) * 100));
       setProgress(pct);
       setStepIndex(Math.min(STEPS.length - 1, Math.floor((elapsed / duration) * STEPS.length)));
-      if (elapsed < duration) requestAnimationFrame(tick);
+      if (elapsed < duration) frameId = requestAnimationFrame(tick);
     };
 
-    requestAnimationFrame(tick);
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
   }, [show]);
 
   return (

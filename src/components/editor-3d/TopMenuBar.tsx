@@ -2,19 +2,22 @@
 
 import { useEditor3DStore, PrimitiveType, LightType } from "@/stores/editor3d-store";
 import { useState, useRef, useEffect } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Save, Layers, Edit3, Box } from "lucide-react";
 
-export function TopMenuBar({ onSave }: { onSave?: () => void }) {
+export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: () => void; saveStatus?: string; title?: string }) {
   const { 
     addObject, addLight, addCamera, undo, redo, 
     setShowLeftPanel, showLeftPanel, setShowNPanel, showNPanel,
-    setViewPreset, setObjects, commitHistory, history
+    setViewPreset, setObjects, commitHistory,
+    selectionMode, setSelectionMode, selectedId, objects,
   } = useEditor3DStore();
 
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const menuBarRef = useRef<HTMLDivElement>(null);
 
-  // Close menus when clicking outside
+  const objectCount = objects.filter(o => o.objectType === 'mesh').length;
+  const lightCount = objects.filter(o => o.objectType === 'light').length;
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuBarRef.current && !menuBarRef.current.contains(e.target as Node)) {
@@ -25,192 +28,231 @@ export function TopMenuBar({ onSave }: { onSave?: () => void }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleMenuClick = (menu: string) => {
-    setActiveMenu(activeMenu === menu ? null : menu);
+  const handleMenuClick = (menu: string) => setActiveMenu(activeMenu === menu ? null : menu);
+  const handleMouseEnter = (menu: string) => { if (activeMenu) setActiveMenu(menu); };
+
+  const menuStyle = (id: string): React.CSSProperties => ({
+    padding: '0 10px', height: '100%', display: 'flex', alignItems: 'center',
+    cursor: 'pointer', fontSize: '0.72rem', fontWeight: 500, letterSpacing: '0.01em',
+    background: activeMenu === id ? 'rgba(71,114,179,0.3)' : 'transparent',
+    color: activeMenu === id ? '#fff' : 'rgba(255,255,255,0.65)',
+    borderRadius: '4px', transition: 'all 0.1s',
+    userSelect: 'none',
+  });
+
+  const dropdownStyle: React.CSSProperties = {
+    position: 'absolute', top: 'calc(100% + 2px)', left: 0, minWidth: '180px',
+    background: '#1e2026', border: '1px solid rgba(255,255,255,0.08)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.6)', padding: '4px 0', zIndex: 200,
+    borderRadius: '6px',
   };
 
-  const handleMouseEnter = (menu: string) => {
-    if (activeMenu) {
-      setActiveMenu(menu);
-    }
-  };
-
-  const MenuItem = ({ label, onClick, shortcut, hasSubmenu }: { label: string, onClick?: () => void, shortcut?: string, hasSubmenu?: boolean }) => (
+  const MenuItem = ({ label, onClick, shortcut, disabled }: { label: string; onClick?: () => void; shortcut?: string; disabled?: boolean }) => (
     <div
-      onClick={(e) => {
-        if (onClick) {
-          e.stopPropagation();
-          onClick();
-          setActiveMenu(null);
-        }
-      }}
+      onClick={(e) => { if (onClick && !disabled) { e.stopPropagation(); onClick(); setActiveMenu(null); } }}
       style={{
-        padding: '6px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        cursor: 'pointer', color: 'var(--text-primary)', fontSize: '0.75rem',
+        padding: '6px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        cursor: disabled ? 'default' : 'pointer',
+        color: disabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.82)',
+        fontSize: '0.72rem', transition: 'background 0.1s',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = '#4772b3'; e.currentTarget.style.color = '#fff'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = 'rgba(71,114,179,0.35)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
     >
       <span>{label}</span>
-      {shortcut && <span style={{ color: 'var(--text-tertiary)', marginLeft: '16px' }}>{shortcut}</span>}
-      {hasSubmenu && <ChevronRight size={12} style={{ marginLeft: '16px' }} />}
+      {shortcut && <span style={{ color: 'rgba(255,255,255,0.3)', marginLeft: '24px', fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>{shortcut}</span>}
     </div>
   );
 
-  const Divider = () => <div style={{ height: '1px', background: '#383838', margin: '4px 0' }} />;
+  const Divider = () => <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)', margin: '3px 0' }} />;
 
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
-
-  const SubmenuItem = ({ label, items, id }: { label: string, items: any[], id: string }) => (
-    <div
-      style={{ position: 'relative' }}
-      onMouseEnter={() => setActiveSubmenu(id)}
-      onMouseLeave={() => setActiveSubmenu(null)}
-    >
-      <div
-        style={{
-          padding: '6px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          cursor: 'pointer', color: 'var(--text-primary)', fontSize: '0.75rem',
-          background: activeSubmenu === id ? '#4772b3' : 'transparent',
-        }}
-      >
+  const SubmenuItem = ({ label, items, id }: { label: string; items: { label: string; onClick: () => void }[]; id: string }) => (
+    <div style={{ position: 'relative' }} onMouseEnter={() => setActiveSubmenu(id)} onMouseLeave={() => setActiveSubmenu(null)}>
+      <div style={{
+        padding: '6px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        cursor: 'pointer', color: 'rgba(255,255,255,0.82)', fontSize: '0.72rem',
+        background: activeSubmenu === id ? 'rgba(71,114,179,0.35)' : 'transparent',
+      }}>
         <span>{label}</span>
-        <ChevronRight size={12} style={{ marginLeft: '16px' }} />
+        <ChevronRight size={11} />
       </div>
       {activeSubmenu === id && (
-        <div style={{
-          position: 'absolute', left: '100%', top: 0, minWidth: '150px',
-          background: '#282828', border: '1px solid #1e1e1e', boxShadow: '2px 4px 12px rgba(0,0,0,0.5)',
-          padding: '4px 0', zIndex: 110,
-        }}>
+        <div style={{ ...dropdownStyle, position: 'absolute', left: 'calc(100% - 4px)', top: '-4px', minWidth: '150px' }}>
           {items.map((item, idx) => (
-            <MenuItem key={idx} label={item.label} onClick={item.onClick} />
+            <MenuItem key={idx} label={item.label} onClick={() => { item.onClick(); setActiveMenu(null); }} />
           ))}
         </div>
       )}
     </div>
   );
 
-  const handleExportGLTF = () => {
-    // Basic placeholder for GLTF export
-    alert("Exporting GLTF functionality will be implemented with GLTFExporter.");
-  };
+  const isEditMode = selectionMode === 'edit';
+  const canEditMode = selectedId && objects.find(o => o.id === selectedId)?.objectType === 'mesh';
 
   return (
     <div ref={menuBarRef} style={{
-      display: 'flex', alignItems: 'center', height: '28px', background: '#282828',
-      borderBottom: '1px solid #1e1e1e', padding: '0 8px', color: 'var(--text-primary)',
-      fontFamily: 'var(--font-sans)', fontSize: '0.75rem', userSelect: 'none'
+      display: 'flex', alignItems: 'center', height: '32px',
+      background: '#16181d',
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
+      padding: '0 8px', gap: '2px',
+      fontFamily: 'var(--font-sans)', userSelect: 'none',
+      flexShrink: 0,
     }}>
-      {/* Corden Logo / Icon */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '0 12px 0 4px', fontWeight: 600 }}>
-        <div style={{ width: '16px', height: '16px', background: 'url(/globe.svg)', backgroundSize: 'cover' }} />
+      {/* Logo mark */}
+      <div style={{
+        width: '24px', height: '24px', borderRadius: '6px',
+        background: 'linear-gradient(135deg, #4772b3 0%, #7b4fc6 100%)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0, marginRight: '6px',
+      }}>
+        <Box size={13} color="#fff" />
       </div>
 
-      {/* Menus */}
-      <div style={{ display: 'flex', height: '100%' }}>
-        
-        {/* FILE */}
-        <div style={{ position: 'relative' }}>
+      {/* Project title */}
+      {title && (
+        <span style={{
+          fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)',
+          marginRight: '8px', maxWidth: '120px',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{title}</span>
+      )}
+
+      <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.08)', marginRight: '6px', flexShrink: 0 }} />
+
+      {/* Menu items */}
+      {[
+        { id: 'file', label: 'File' },
+        { id: 'edit', label: 'Edit' },
+        { id: 'add', label: 'Add' },
+        { id: 'view', label: 'View' },
+      ].map(({ id, label }) => (
+        <div key={id} style={{ position: 'relative', height: '100%', display: 'flex', alignItems: 'center' }}>
           <div
-            onClick={() => handleMenuClick('file')}
-            onMouseEnter={() => handleMouseEnter('file')}
-            style={{ padding: '0 12px', height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', background: activeMenu === 'file' ? '#4772b3' : 'transparent', color: activeMenu === 'file' ? '#fff' : 'inherit' }}
+            onClick={() => handleMenuClick(id)}
+            onMouseEnter={() => handleMouseEnter(id)}
+            style={menuStyle(id)}
           >
-            File
+            {label}
           </div>
-          {activeMenu === 'file' && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, minWidth: '180px', background: '#282828', border: '1px solid #1e1e1e', boxShadow: '2px 4px 12px rgba(0,0,0,0.5)', padding: '4px 0', zIndex: 100 }}>
-              <MenuItem label="New" onClick={() => { if(confirm("Clear scene?")) { setObjects([]); commitHistory(); } }} />
-              <MenuItem label="Save" shortcut="Ctrl S" onClick={onSave} />
-              <Divider />
-              <MenuItem label="Export GLTF" onClick={handleExportGLTF} />
+          {activeMenu === id && (
+            <div style={dropdownStyle}>
+              {id === 'file' && (<>
+                <MenuItem label="New Scene" onClick={() => { 
+                  if (confirm('Clear scene?')) { 
+                    setObjects([]); 
+                    useEditor3DStore.getState().setAnnotations([]);
+                    useEditor3DStore.getState().setMeasurements([]);
+                    useEditor3DStore.getState().setCursor3D([0,0,0]);
+                    commitHistory(); 
+                  } 
+                }} />
+                <MenuItem label="Save" shortcut="Ctrl S" onClick={onSave} />
+                <Divider />
+                <MenuItem label="Export GLTF" onClick={() => window.dispatchEvent(new Event('export-gltf'))} />
+              </>)}
+              {id === 'edit' && (<>
+                <MenuItem label="Undo" shortcut="Ctrl Z" onClick={undo} />
+                <MenuItem label="Redo" shortcut="Ctrl Y" onClick={redo} />
+              </>)}
+              {id === 'add' && (<>
+                <SubmenuItem id="mesh" label="Mesh" items={[
+                  { label: 'Cube', onClick: () => addObject('cube') },
+                  { label: 'Sphere', onClick: () => addObject('sphere') },
+                  { label: 'Cylinder', onClick: () => addObject('cylinder') },
+                  { label: 'Cone', onClick: () => addObject('cone') },
+                  { label: 'Plane', onClick: () => addObject('plane') },
+                  { label: 'Torus', onClick: () => addObject('torus') },
+                  { label: 'Icosphere', onClick: () => addObject('icosphere') },
+                ]} />
+                <SubmenuItem id="light" label="Light" items={[
+                  { label: 'Point', onClick: () => addLight('point') },
+                  { label: 'Sun', onClick: () => addLight('sun') },
+                  { label: 'Spot', onClick: () => addLight('spot') },
+                  { label: 'Area', onClick: () => addLight('area') },
+                ]} />
+                <MenuItem label="Camera" onClick={() => addCamera()} />
+              </>)}
+              {id === 'view' && (<>
+                <MenuItem label={showLeftPanel ? "Hide Toolbar" : "Show Toolbar"} shortcut="T" onClick={() => setShowLeftPanel(!showLeftPanel)} />
+                <MenuItem label={showNPanel ? "Hide N-Panel" : "Show N-Panel"} shortcut="N" onClick={() => setShowNPanel(!showNPanel)} />
+                <Divider />
+                <SubmenuItem id="viewport" label="Viewport" items={[
+                  { label: 'Front', onClick: () => setViewPreset('front') },
+                  { label: 'Right', onClick: () => setViewPreset('right') },
+                  { label: 'Top', onClick: () => setViewPreset('top') },
+                  { label: 'Camera', onClick: () => setViewPreset('camera') },
+                ]} />
+                <Divider />
+                <MenuItem label="Clear Annotations" onClick={() => useEditor3DStore.getState().setAnnotations([])} />
+                <MenuItem label="Clear Measurements" onClick={() => useEditor3DStore.getState().setMeasurements([])} />
+              </>)}
             </div>
           )}
         </div>
-
-        {/* EDIT */}
-        <div style={{ position: 'relative' }}>
-          <div
-            onClick={() => handleMenuClick('edit')}
-            onMouseEnter={() => handleMouseEnter('edit')}
-            style={{ padding: '0 12px', height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', background: activeMenu === 'edit' ? '#4772b3' : 'transparent', color: activeMenu === 'edit' ? '#fff' : 'inherit' }}
-          >
-            Edit
-          </div>
-          {activeMenu === 'edit' && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, minWidth: '180px', background: '#282828', border: '1px solid #1e1e1e', boxShadow: '2px 4px 12px rgba(0,0,0,0.5)', padding: '4px 0', zIndex: 100 }}>
-              <MenuItem label="Undo" shortcut="Ctrl Z" onClick={undo} />
-              <MenuItem label="Redo" shortcut="Ctrl Y" onClick={redo} />
-            </div>
-          )}
-        </div>
-
-        {/* ADD */}
-        <div style={{ position: 'relative' }}>
-          <div
-            onClick={() => handleMenuClick('add')}
-            onMouseEnter={() => handleMouseEnter('add')}
-            style={{ padding: '0 12px', height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', background: activeMenu === 'add' ? '#4772b3' : 'transparent', color: activeMenu === 'add' ? '#fff' : 'inherit' }}
-          >
-            Add
-          </div>
-          {activeMenu === 'add' && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, minWidth: '180px', background: '#282828', border: '1px solid #1e1e1e', boxShadow: '2px 4px 12px rgba(0,0,0,0.5)', padding: '4px 0', zIndex: 100 }}>
-              <SubmenuItem id="mesh" label="Mesh" items={[
-                { label: 'Cube', onClick: () => addObject('cube') },
-                { label: 'Sphere', onClick: () => addObject('sphere') },
-                { label: 'Cylinder', onClick: () => addObject('cylinder') },
-                { label: 'Cone', onClick: () => addObject('cone') },
-                { label: 'Plane', onClick: () => addObject('plane') },
-                { label: 'Torus', onClick: () => addObject('torus') },
-                { label: 'Icosphere', onClick: () => addObject('icosphere') },
-              ]} />
-              <SubmenuItem id="light" label="Light" items={[
-                { label: 'Point', onClick: () => addLight('point') },
-                { label: 'Sun', onClick: () => addLight('sun') },
-                { label: 'Spot', onClick: () => addLight('spot') },
-                { label: 'Area', onClick: () => addLight('area') },
-              ]} />
-              <MenuItem label="Camera" onClick={() => addCamera()} />
-            </div>
-          )}
-        </div>
-
-        {/* VIEW */}
-        <div style={{ position: 'relative' }}>
-          <div
-            onClick={() => handleMenuClick('view')}
-            onMouseEnter={() => handleMouseEnter('view')}
-            style={{ padding: '0 12px', height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', background: activeMenu === 'view' ? '#4772b3' : 'transparent', color: activeMenu === 'view' ? '#fff' : 'inherit' }}
-          >
-            View
-          </div>
-          {activeMenu === 'view' && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, minWidth: '180px', background: '#282828', border: '1px solid #1e1e1e', boxShadow: '2px 4px 12px rgba(0,0,0,0.5)', padding: '4px 0', zIndex: 100 }}>
-              <MenuItem label={showLeftPanel ? "Hide Toolbar" : "Show Toolbar"} shortcut="T" onClick={() => setShowLeftPanel(!showLeftPanel)} />
-              <MenuItem label={showNPanel ? "Hide Sidebar" : "Show Sidebar"} shortcut="N" onClick={() => setShowNPanel(!showNPanel)} />
-              <Divider />
-              <SubmenuItem id="cameras" label="Cameras" items={[
-                { label: 'Active Camera', onClick: () => setViewPreset('camera') }
-              ]} />
-              <SubmenuItem id="viewport" label="Viewport" items={[
-                { label: 'Front', onClick: () => setViewPreset('front') },
-                { label: 'Right', onClick: () => setViewPreset('right') },
-                { label: 'Top', onClick: () => setViewPreset('top') },
-              ]} />
-            </div>
-          )}
-        </div>
-
-      </div>
+      ))}
 
       <div style={{ flex: 1 }} />
 
-      {/* Info Stats */}
-      <div style={{ padding: '0 12px', color: 'var(--text-tertiary)', display: 'flex', gap: '16px' }}>
-        <span>Blender Mode</span>
+      {/* Object / Edit Mode switcher */}
+      <div style={{
+        display: 'flex', background: 'rgba(0,0,0,0.35)', borderRadius: '6px', padding: '2px',
+        border: '1px solid rgba(255,255,255,0.07)', gap: '2px',
+      }}>
+        {(['object', 'edit'] as const).map((mode) => (
+          <button
+            key={mode}
+            title={mode === 'object' ? 'Object Mode (Tab)' : 'Edit Mode (Tab) — requires mesh selected'}
+            disabled={mode === 'edit' && !canEditMode}
+            onClick={() => setSelectionMode(selectionMode === mode ? 'object' : mode)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              padding: '3px 10px', borderRadius: '4px', border: 'none',
+              cursor: mode === 'edit' && !canEditMode ? 'not-allowed' : 'pointer',
+              fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              background: selectionMode === mode
+                ? mode === 'edit' ? 'rgba(255,180,0,0.25)' : 'rgba(71,114,179,0.4)'
+                : 'transparent',
+              color: selectionMode === mode
+                ? mode === 'edit' ? '#ffb400' : '#8bb8ff'
+                : 'rgba(255,255,255,0.35)',
+              transition: 'all 0.15s',
+              opacity: mode === 'edit' && !canEditMode ? 0.4 : 1,
+            }}
+          >
+            {mode === 'object' ? <Layers size={11} /> : <Edit3 size={11} />}
+            {mode}
+          </button>
+        ))}
       </div>
+
+      <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.08)', margin: '0 8px', flexShrink: 0 }} />
+
+      {/* Stats */}
+      <div style={{ display: 'flex', gap: '10px', fontSize: '0.65rem', fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.3)' }}>
+        <span>{objectCount} mesh{objectCount !== 1 ? 'es' : ''}</span>
+        <span>{lightCount} light{lightCount !== 1 ? 's' : ''}</span>
+      </div>
+
+      <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.08)', margin: '0 8px', flexShrink: 0 }} />
+
+      {/* Save button */}
+      <button
+        onClick={onSave}
+        title="Save (Ctrl+S)"
+        style={{
+          display: 'flex', alignItems: 'center', gap: '5px',
+          padding: '3px 10px', borderRadius: '5px', border: '1px solid rgba(255,255,255,0.08)',
+          background: saveStatus === 'saving' ? 'rgba(71,114,179,0.3)' : 'rgba(255,255,255,0.04)',
+          color: saveStatus === 'saved' ? '#4ade80' : saveStatus === 'saving' ? '#8bb8ff' : 'rgba(255,255,255,0.55)',
+          cursor: 'pointer', fontSize: '0.68rem', fontWeight: 500,
+          transition: 'all 0.2s',
+        }}
+      >
+        <Save size={11} />
+        {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save'}
+      </button>
     </div>
   );
 }

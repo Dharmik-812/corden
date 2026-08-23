@@ -1,30 +1,39 @@
 "use client";
 
 import { useEditor3DStore } from "@/stores/editor3d-store";
-import { MousePointer2, Move, RotateCw, Scaling, Crosshair, Wrench, Spline } from "lucide-react";
+import {
+  MousePointer2, Move, RotateCw, Scaling, Crosshair,
+  Wrench, Spline, ArrowUp, ArrowDown, LayoutGrid,
+  Pencil,
+} from "lucide-react";
 import { useState } from "react";
 
 interface ToolbarButtonProps {
   icon: React.ReactNode;
   label: string;
+  shortcut?: string;
   active: boolean;
   onClick: () => void;
+  accentColor?: string;
 }
 
-function ToolbarButton({ icon, label, active, onClick }: ToolbarButtonProps) {
+function ToolbarButton({ icon, label, shortcut, active, onClick, accentColor = '#4772b3' }: ToolbarButtonProps) {
   const [hovered, setHovered] = useState(false);
+  const isActive = active || hovered;
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
       <button
         onClick={onClick}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        title={label}
         style={{
-          width: '36px', height: '36px', borderRadius: '4px', border: 'none', cursor: 'pointer',
+          width: '36px', height: '34px', borderRadius: '6px', border: 'none', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: active ? '#4772b3' : 'transparent',
-          color: active ? '#fff' : (hovered ? 'var(--text-primary)' : 'var(--text-secondary)'),
-          transition: 'all 0.1s'
+          background: active ? `${accentColor}33` : hovered ? 'rgba(255,255,255,0.07)' : 'transparent',
+          color: active ? accentColor : hovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)',
+          transition: 'all 0.12s',
+          outline: active ? `1px solid ${accentColor}55` : 'none',
         }}
       >
         {icon}
@@ -32,79 +41,153 @@ function ToolbarButton({ icon, label, active, onClick }: ToolbarButtonProps) {
       {/* Tooltip */}
       {hovered && (
         <div style={{
-          position: 'absolute', left: '100%', top: '50%', transform: 'translateY(-50%)', marginLeft: '12px',
-          background: 'rgba(20,20,25,0.95)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-primary)',
-          padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', whiteSpace: 'nowrap', zIndex: 100
+          position: 'absolute', left: 'calc(100% + 10px)', top: '50%', transform: 'translateY(-50%)',
+          background: '#0f1115', border: '1px solid rgba(255,255,255,0.1)',
+          color: '#fff', padding: '5px 10px', borderRadius: '6px',
+          fontSize: '0.68rem', whiteSpace: 'nowrap', zIndex: 200,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+          display: 'flex', flexDirection: 'column', gap: '1px',
+          pointerEvents: 'none',
         }}>
-          {label}
+          <span style={{ fontWeight: 600 }}>{label}</span>
+          {shortcut && <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.62rem', fontFamily: 'var(--font-mono)' }}>{shortcut}</span>}
         </div>
       )}
     </div>
   );
 }
 
-export function Toolbar3D() {
-  const { transformMode, setTransformMode } = useEditor3DStore();
+function Divider() {
+  return <div style={{ width: '26px', height: '1px', background: 'rgba(255,255,255,0.06)', margin: '3px 0', flexShrink: 0 }} />;
+}
 
-  const dividerStyle: React.CSSProperties = {
-    width: '24px', height: '1px',
-    background: 'rgba(255,255,255,0.06)',
-    margin: '4px 0',
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <span style={{
+      fontSize: '0.52rem', fontWeight: 700, letterSpacing: '0.08em',
+      textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)',
+      marginTop: '6px', marginBottom: '1px', userSelect: 'none',
+    }}>
+      {label}
+    </span>
+  );
+}
+
+export function Toolbar3D() {
+  const { transformMode, setTransformMode, selectionMode, selectedId, addModifier } = useEditor3DStore();
+
+  const handleExtrude = () => {
+    if (selectedId) addModifier(selectedId, 'solidify', { thickness: 0.15 });
   };
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', width: '100%', padding: '4px 0' }}>
-      
-      <ToolbarButton
-        icon={<MousePointer2 size={16} strokeWidth={1.5} />}
-        label="Select Box (B)"
-        active={false}
-        onClick={() => {}}
-      />
-      
-      <ToolbarButton
-        icon={<Crosshair size={16} strokeWidth={1.5} />}
-        label="Cursor (Shift+RMB)"
-        active={false}
-        onClick={() => {}}
-      />
-      
-      <div style={dividerStyle} />
+  const handleInset = () => {
+    if (selectedId) addModifier(selectedId, 'solidify', { thickness: -0.1 });
+  };
 
+  const handleSubdivide = () => {
+    if (selectedId) addModifier(selectedId, 'subdivision', { levels: 1 });
+  };
+
+  if (selectionMode === 'edit') {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: '2px', width: '100%', padding: '8px 6px',
+      }}>
+        {/* Edit mode header */}
+        <div style={{
+          width: '36px', height: '4px', borderRadius: '2px',
+          background: 'linear-gradient(90deg, #ffb400, #ff8c00)',
+          marginBottom: '6px', flexShrink: 0,
+        }} />
+
+        <SectionLabel label="Ops" />
+        <ToolbarButton
+          icon={<ArrowUp size={15} strokeWidth={2} />}
+          label="Extrude Region"
+          shortcut="E"
+          active={false}
+          onClick={handleExtrude}
+          accentColor="#ffb400"
+        />
+        <ToolbarButton
+          icon={<ArrowDown size={15} strokeWidth={2} />}
+          label="Inset Faces"
+          shortcut="I"
+          active={false}
+          onClick={handleInset}
+          accentColor="#ff6b6b"
+        />
+        <Divider />
+        <SectionLabel label="Mesh" />
+        <ToolbarButton
+          icon={<LayoutGrid size={15} strokeWidth={1.5} />}
+          label="Subdivide"
+          active={false}
+          onClick={handleSubdivide}
+          accentColor="#6bffc0"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      gap: '2px', width: '100%', padding: '8px 6px',
+    }}>
+      <SectionLabel label="Sel" />
       <ToolbarButton
-        icon={<Move size={16} strokeWidth={1.5} />}
-        label="Move (G)"
+        icon={<MousePointer2 size={15} strokeWidth={1.5} />}
+        label="Select Box"
+        shortcut="B"
+        active={useEditor3DStore.getState().interactionMode === 'select'}
+        onClick={() => useEditor3DStore.getState().setInteractionMode('select')}
+      />
+      <ToolbarButton
+        icon={<Crosshair size={15} strokeWidth={1.5} />}
+        label="3D Cursor"
+        shortcut="Shift+RMB"
+        active={useEditor3DStore.getState().interactionMode === 'cursor'}
+        onClick={() => useEditor3DStore.getState().setInteractionMode('cursor')}
+      />
+      <Divider />
+      <SectionLabel label="Trans" />
+      <ToolbarButton
+        icon={<Move size={15} strokeWidth={1.5} />}
+        label="Move"
+        shortcut="G"
         active={transformMode === 'translate'}
         onClick={() => setTransformMode('translate')}
       />
       <ToolbarButton
-        icon={<RotateCw size={16} strokeWidth={1.5} />}
-        label="Rotate (R)"
+        icon={<RotateCw size={15} strokeWidth={1.5} />}
+        label="Rotate"
+        shortcut="R"
         active={transformMode === 'rotate'}
         onClick={() => setTransformMode('rotate')}
       />
       <ToolbarButton
-        icon={<Scaling size={16} strokeWidth={1.5} />}
-        label="Scale (S)"
+        icon={<Scaling size={15} strokeWidth={1.5} />}
+        label="Scale"
+        shortcut="S"
         active={transformMode === 'scale'}
         onClick={() => setTransformMode('scale')}
       />
-
-      <div style={dividerStyle} />
-      
+      <Divider />
+      <SectionLabel label="Tools" />
       <ToolbarButton
-        icon={<Spline size={16} strokeWidth={1.5} />}
+        icon={<Spline size={15} strokeWidth={1.5} />}
         label="Annotate"
-        active={false}
-        onClick={() => {}}
+        active={useEditor3DStore.getState().interactionMode === 'annotate'}
+        onClick={() => useEditor3DStore.getState().setInteractionMode('annotate')}
       />
       <ToolbarButton
-        icon={<Wrench size={16} strokeWidth={1.5} />}
+        icon={<Wrench size={15} strokeWidth={1.5} />}
         label="Measure"
-        active={false}
-        onClick={() => {}}
+        active={useEditor3DStore.getState().interactionMode === 'measure'}
+        onClick={() => useEditor3DStore.getState().setInteractionMode('measure')}
       />
-
     </div>
   );
 }

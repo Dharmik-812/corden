@@ -53,6 +53,7 @@ function LightObject({ light, showGizmos, selectedId, transformMode, updateObjec
         position={light.position}
         rotation={light.rotation}
         scale={light.scale}
+        userData={{ isExportable: true }}
         onClick={(e) => { e.stopPropagation(); useEditor3DStore.getState().setSelectedId(light.id); }}
       >
         {/* The actual light */}

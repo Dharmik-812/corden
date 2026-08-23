@@ -1,7 +1,7 @@
 "use client";
 
 import { usePixelEditorStore, PixelTool, CanvasSize } from "@/stores/pixelEditor-store";
-import { Pencil, Eraser, PaintBucket, Pipette, Grid3X3, Trash2, Download, ZoomIn, ZoomOut, Undo2, Redo2, Save } from "lucide-react";
+import { Pencil, Eraser, PaintBucket, Pipette, Grid3X3, Trash2, Download, ZoomIn, ZoomOut, Undo2, Redo2, Save, Minus, Square, SplitSquareHorizontal, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
 const CANVAS_SIZES: CanvasSize[] = [8, 16, 32, 48, 64, 128];
@@ -49,29 +49,33 @@ export function PixelToolbar({ onSave }: { onSave?: () => void }) {
     activeTool, setActiveTool, gridVisible, toggleGrid,
     zoom, setZoom, setPan, panX, panY, canvasWidth, canvasHeight,
     clearCanvas, undo, redo, historyIndex, history,
-    setCanvasSize,
+    setCanvasSize, symmetryMode, setSymmetryMode,
   } = usePixelEditorStore();
 
   const [showSizeMenu, setShowSizeMenu] = useState(false);
+  const [showSymmetryMenu, setShowSymmetryMenu] = useState(false);
 
-  const handleExportPNG = () => {
-    const { pixels, canvasWidth, canvasHeight, primaryColor } = usePixelEditorStore.getState();
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const handleExportPNG = (scale: number) => {
+    const { pixels, canvasWidth, canvasHeight } = usePixelEditorStore.getState();
     const offscreen = document.createElement("canvas");
-    offscreen.width = canvasWidth;
-    offscreen.height = canvasHeight;
+    offscreen.width = canvasWidth * scale;
+    offscreen.height = canvasHeight * scale;
     const ctx = offscreen.getContext("2d")!;
-    // Transparent background
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    ctx.imageSmoothingEnabled = false; // keep pixels sharp
+    ctx.clearRect(0, 0, offscreen.width, offscreen.height);
     for (const [key, color] of Object.entries(pixels)) {
       const [px, py] = key.split(",").map(Number);
       ctx.fillStyle = color;
-      ctx.fillRect(px, py, 1, 1);
+      ctx.fillRect(px * scale, py * scale, scale, scale);
     }
     const url = offscreen.toDataURL("image/png");
     const a = document.createElement("a");
     a.href = url;
-    a.download = `corden-pixel-${canvasWidth}x${canvasHeight}.png`;
+    a.download = `corden-pixel-${canvasWidth * scale}x${canvasHeight * scale}.png`;
     a.click();
+    setShowExportMenu(false);
   };
 
   const tools: { id: PixelTool; icon: React.ReactNode; label: string; shortcut: string }[] = [
@@ -79,6 +83,8 @@ export function PixelToolbar({ onSave }: { onSave?: () => void }) {
     { id: 'eraser', icon: <Eraser size={18} strokeWidth={1.5} />, label: 'Eraser', shortcut: 'E' },
     { id: 'fill', icon: <PaintBucket size={18} strokeWidth={1.5} />, label: 'Fill Bucket', shortcut: 'F' },
     { id: 'eyedropper', icon: <Pipette size={18} strokeWidth={1.5} />, label: 'Eyedropper', shortcut: 'I' },
+    { id: 'line', icon: <Minus size={18} strokeWidth={1.5} />, label: 'Line', shortcut: 'L' },
+    { id: 'rectangle', icon: <Square size={18} strokeWidth={1.5} />, label: 'Rectangle', shortcut: 'R' },
   ];
 
   const panelStyle: React.CSSProperties = {
@@ -111,6 +117,55 @@ export function PixelToolbar({ onSave }: { onSave?: () => void }) {
             onClick={() => setActiveTool(tool.id)}
           />
         ))}
+      </div>
+
+      {/* Symmetry */}
+      <div style={panelStyle}>
+        <div style={{ position: 'relative' }}>
+          <button
+            title="Symmetry Mode"
+            onClick={() => setShowSymmetryMenu((v) => !v)}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '40px', height: '40px', borderRadius: '10px', border: 'none',
+              cursor: 'pointer', transition: 'all 0.15s ease',
+              background: symmetryMode !== 'none'
+                ? 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-brass) 100%)'
+                : showSymmetryMenu ? 'rgba(255,255,255,0.1)' : 'transparent',
+              color: symmetryMode !== 'none' ? '#fff' : 'var(--text-secondary)',
+              boxShadow: symmetryMode !== 'none' ? '0 4px 14px rgba(74,144,226,0.4)' : 'none',
+            }}
+          >
+            <SplitSquareHorizontal size={18} strokeWidth={1.5} />
+          </button>
+          {showSymmetryMenu && (
+            <div style={{
+              position: 'absolute', left: '52px', top: 0, zIndex: 100,
+              background: 'rgba(10,10,14,0.95)', backdropFilter: 'blur(32px)',
+              border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px',
+              padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px',
+              minWidth: '130px', boxShadow: '0 8px 32px rgba(0,0,0,0.8)',
+            }}>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', padding: '4px 8px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Symmetry</div>
+              {(['none', 'horizontal', 'vertical', 'both'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => { setSymmetryMode(mode); setShowSymmetryMenu(false); }}
+                  style={{
+                    padding: '8px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', textAlign: 'left',
+                    background: symmetryMode === mode ? 'rgba(74,144,226,0.15)' : 'transparent',
+                    color: symmetryMode === mode ? 'var(--accent-primary)' : 'var(--text-primary)',
+                    fontFamily: 'var(--font-mono)', fontSize: '0.8rem', transition: 'background 0.15s', textTransform: 'capitalize'
+                  }}
+                  onMouseEnter={(e) => { if (symmetryMode !== mode) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                  onMouseLeave={(e) => { if (symmetryMode !== mode) e.currentTarget.style.background = 'transparent'; }}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Zoom & Grid */}
@@ -208,11 +263,57 @@ export function PixelToolbar({ onSave }: { onSave?: () => void }) {
             onClick={onSave}
           />
         )}
-        <ToolButton
-          icon={<Download size={18} strokeWidth={1.5} />}
-          label="Export PNG"
-          onClick={handleExportPNG}
-        />
+        {/* Export with scale dropdown */}
+        <div style={{ position: 'relative' }}>
+          <button
+            title="Export PNG"
+            onClick={() => setShowExportMenu(v => !v)}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = showExportMenu ? 'rgba(255,255,255,0.1)' : 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column',
+              width: '40px', height: '40px', borderRadius: '10px', border: 'none',
+              cursor: 'pointer', transition: 'all 0.15s ease',
+              background: showExportMenu ? 'rgba(255,255,255,0.1)' : 'transparent',
+              color: 'var(--text-secondary)',
+              gap: '1px',
+            }}
+          >
+            <Download size={15} strokeWidth={1.5} />
+            <ChevronRight size={8} strokeWidth={2} style={{ opacity: 0.5, transform: 'rotate(90deg)' }} />
+          </button>
+          {showExportMenu && (
+            <div style={{
+              position: 'absolute', left: '52px', bottom: 0, zIndex: 200,
+              background: 'rgba(12,14,18,0.97)', backdropFilter: 'blur(32px)',
+              border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px',
+              padding: '8px', display: 'flex', flexDirection: 'column', gap: '3px',
+              minWidth: '190px', boxShadow: '0 8px 32px rgba(0,0,0,0.8)',
+            }}>
+              <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-mono)', padding: '4px 8px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Export PNG</div>
+              {[
+                { scale: 16, label: 'Ultra HQ', sub: `${canvasWidth*16}×${canvasHeight*16}px — print quality` },
+                { scale: 8,  label: 'High Quality', sub: `${canvasWidth*8}×${canvasHeight*8}px — recommended` },
+                { scale: 4,  label: 'Medium', sub: `${canvasWidth*4}×${canvasHeight*4}px` },
+                { scale: 2,  label: 'Low', sub: `${canvasWidth*2}×${canvasHeight*2}px — smallest` },
+              ].map(({ scale, label, sub }) => (
+                <button
+                  key={scale}
+                  onClick={() => handleExportPNG(scale)}
+                  style={{
+                    padding: '8px 10px', borderRadius: '8px', border: 'none', cursor: 'pointer', textAlign: 'left',
+                    background: 'transparent', transition: 'background 0.1s', display: 'flex', flexDirection: 'column', gap: '2px',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <span style={{ color: 'rgba(255,255,255,0.88)', fontSize: '0.75rem', fontWeight: 600 }}>{label} ({scale}×)</span>
+                  <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.62rem', fontFamily: 'var(--font-mono)' }}>{sub}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <ToolButton
           icon={<Trash2 size={18} strokeWidth={1.5} />}
           label="Clear Canvas"

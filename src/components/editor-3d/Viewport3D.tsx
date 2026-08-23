@@ -1,11 +1,12 @@
 "use client";
 
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
-import { OrbitControls, Grid, Environment, GizmoHelper, GizmoViewport } from "@react-three/drei";
+import { OrbitControls, Grid, Environment, GizmoHelper, GizmoViewport, Line, Text } from "@react-three/drei";
 import { SceneObjects } from "./SceneObjects";
 import { useEditor3DStore } from "@/stores/editor3d-store";
 import { useEffect, useRef, Suspense } from "react";
 import * as THREE from "three";
+import { GLTFExporter } from "three-stdlib";
 
 function CameraController() {
   const { camera, gl } = useThree();
@@ -82,27 +83,187 @@ function AnimationPlayer() {
 
 function Cursor3DMarker() {
   const { cursor3D } = useEditor3DStore();
+  const lineSegments = [
+    [[0.2, 0, 0], [0, 0, 0]], [[-0.2, 0, 0], [0, 0, 0]],
+    [[0, 0.2, 0], [0, 0, 0]], [[0, -0.2, 0], [0, 0, 0]],
+    [[0, 0, 0.2], [0, 0, 0]], [[0, 0, -0.2], [0, 0, 0]],
+  ];
   return (
     <group position={cursor3D}>
       <mesh>
         <sphereGeometry args={[0.05, 8, 8]} />
         <meshBasicMaterial color="#ffffff" />
       </mesh>
-      {/* Cross hair lines */}
-      {[
-        [[0.2, 0, 0], [0, 0, 0]], [[-0.2, 0, 0], [0, 0, 0]],
-        [[0, 0.2, 0], [0, 0, 0]], [[0, -0.2, 0], [0, 0, 0]],
-        [[0, 0, 0.2], [0, 0, 0]], [[0, 0, -0.2], [0, 0, 0]],
-      ].map(([start, end], i) => {
+      {lineSegments.map(([start, end], i) => {
         const points = [new THREE.Vector3(...start as [number,number,number]), new THREE.Vector3(...end as [number,number,number])];
         const geom = new THREE.BufferGeometry().setFromPoints(points);
-        return (
-          <line key={i} geometry={geom}>
-            <lineBasicMaterial color="#ff6600" linewidth={2} />
-          </line>
-        );
+        const mat = new THREE.LineBasicMaterial({ color: '#ff6600' });
+        const lineObj = new THREE.Line(geom, mat);
+        return <primitive key={i} object={lineObj} />;
       })}
     </group>
+  );
+}
+
+function GLTFExporterComponent() {
+  const { scene } = useThree();
+
+  useEffect(() => {
+    const handleExport = () => {
+      const exporter = new GLTFExporter();
+      const exportScene = new THREE.Scene();
+
+      // Only export objects we tagged as exportable
+      scene.traverse((child) => {
+        if (child.userData.isExportable) {
+          exportScene.add(child.clone());
+        }
+      });
+
+      exporter.parse(
+        exportScene,
+        (gltf) => {
+          const blob = new Blob([JSON.stringify(gltf)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'corden-scene.gltf';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        },
+        (error) => {
+          console.error("GLTF Export failed", error);
+        },
+        { onlyVisible: true, trs: true }
+      );
+    };
+
+    window.addEventListener('export-gltf', handleExport as EventListener);
+    return () => window.removeEventListener('export-gltf', handleExport as EventListener);
+  }, [scene]);
+
+  return null;
+}
+
+function InteractionController() {
+  const { camera, raycaster, scene, gl } = useThree();
+  const isDrawingRef = useRef(false);
+  const currentIdRef = useRef('');
+
+  useEffect(() => {
+    const handlePointerDown = (e: PointerEvent) => {
+      const store = useEditor3DStore.getState();
+      if (store.interactionMode === 'select') return;
+      
+      const rect = gl.domElement.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+      
+      const intersects = raycaster.intersectObjects(scene.children, true).filter(i => i.object.userData.isExportable);
+      let point = new THREE.Vector3();
+      
+      if (intersects.length > 0) {
+        point = intersects[0].point;
+      } else {
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        raycaster.ray.intersectPlane(plane, point);
+      }
+      
+      if (!point) return;
+
+      if (store.interactionMode === 'cursor') {
+        store.setCursor3D([point.x, point.y, point.z]);
+      } else if (store.interactionMode === 'annotate') {
+        isDrawingRef.current = true;
+        currentIdRef.current = Math.random().toString();
+        store.setAnnotations([...store.annotations, { id: currentIdRef.current, points: [[point.x, point.y, point.z]] }]);
+      } else if (store.interactionMode === 'measure') {
+        isDrawingRef.current = true;
+        currentIdRef.current = Math.random().toString();
+        store.setMeasurements([...store.measurements, { id: currentIdRef.current, start: [point.x, point.y, point.z], end: null }]);
+      }
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!isDrawingRef.current) return;
+      const store = useEditor3DStore.getState();
+      if (store.interactionMode === 'select' || store.interactionMode === 'cursor') return;
+
+      const rect = gl.domElement.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+      
+      const intersects = raycaster.intersectObjects(scene.children, true).filter(i => i.object.userData.isExportable);
+      let point = new THREE.Vector3();
+      
+      if (intersects.length > 0) {
+        point = intersects[0].point;
+      } else {
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        raycaster.ray.intersectPlane(plane, point);
+      }
+      
+      if (!point) return;
+
+      if (store.interactionMode === 'annotate') {
+        const ann = [...store.annotations];
+        const idx = ann.findIndex(a => a.id === currentIdRef.current);
+        if (idx !== -1) {
+          ann[idx] = { ...ann[idx], points: [...ann[idx].points, [point.x, point.y, point.z]] };
+          store.setAnnotations(ann);
+        }
+      } else if (store.interactionMode === 'measure') {
+        const meas = [...store.measurements];
+        const idx = meas.findIndex(m => m.id === currentIdRef.current);
+        if (idx !== -1) {
+          meas[idx] = { ...meas[idx], end: [point.x, point.y, point.z] };
+          store.setMeasurements(meas);
+        }
+      }
+    };
+
+    const handlePointerUp = () => {
+      isDrawingRef.current = false;
+    };
+
+    gl.domElement.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+
+    return () => {
+      gl.domElement.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [camera, raycaster, scene, gl]);
+
+  const annotations = useEditor3DStore(s => s.annotations);
+  const measurements = useEditor3DStore(s => s.measurements);
+  
+  return (
+    <>
+      {annotations.map(a => (
+        a.points.length > 1 && <Line key={a.id} points={a.points} color="#ff3366" lineWidth={3} />
+      ))}
+      {measurements.map(m => {
+        if (!m.end) return null;
+        const start = new THREE.Vector3(...m.start);
+        const end = new THREE.Vector3(...m.end);
+        const dist = start.distanceTo(end).toFixed(2);
+        const mid = start.clone().lerp(end, 0.5);
+        return (
+          <group key={m.id}>
+            <Line points={[m.start, m.end]} color="#33ccff" lineWidth={2} dashed dashSize={0.1} gapSize={0.1} />
+            <Text position={mid} color="#33ccff" fontSize={0.2} anchorX="center" anchorY="bottom" outlineWidth={0.02} outlineColor="#000">
+              {dist}m
+            </Text>
+          </group>
+        );
+      })}
+    </>
   );
 }
 
@@ -115,7 +276,7 @@ export function Viewport3D() {
     showLeftPanel, setShowLeftPanel, showRightPanel, setShowRightPanel,
     showTimeline, setShowTimeline, addKeyframe, setIsPlaying, isPlaying,
     selectionMode, setSelectionMode, commitHistory, setAddMenuPosition: setMenu,
-    showAxes, viewPreset,
+    showAxes, viewPreset, addModifier,
   } = useEditor3DStore();
 
   useEffect(() => {
@@ -137,6 +298,20 @@ export function Viewport3D() {
         case 'g': setTransformMode('translate'); break;
         case 'r': setTransformMode('rotate'); break;
         case 's': if (!e.shiftKey) setTransformMode('scale'); break;
+        case 'e':
+          // Extrude in edit mode
+          if (selectionMode === 'edit' && selectedId) {
+            addModifier(selectedId, 'solidify', { thickness: 0.1 });
+          }
+          break;
+        case 'i':
+          // Inset in edit mode
+          if (selectionMode === 'edit' && selectedId) {
+            addModifier(selectedId, 'solidify', { thickness: -0.1 });
+          } else if (selectedId) {
+            addKeyframe(selectedId);
+          }
+          break;
         case 'x': case 'delete':
           if (selectedId) removeObject(selectedId); break;
         case 'h':
@@ -146,8 +321,6 @@ export function Viewport3D() {
         case 'z': setShowShaderPie(true); break;
         case 't': setShowLeftPanel(!useEditor3DStore.getState().showLeftPanel); break;
         case 'n': setShowNPanel(!useEditor3DStore.getState().showNPanel); break;
-        case 'i':
-          if (selectedId) addKeyframe(selectedId); break;
         case ' ':
           e.preventDefault();
           setIsPlaying(!useEditor3DStore.getState().isPlaying);
@@ -205,7 +378,7 @@ export function Viewport3D() {
 
   return (
     <div
-      style={{ width: '100%', height: '100%', position: 'relative', background: shadingMode === 'rendered' ? '#050505' : '#1a1a1f' }}
+      style={{ width: '100%', height: '100%', position: 'relative', background: shadingMode === 'rendered' ? '#060608' : '#13151a' }}
     >
       <Canvas
         shadows
@@ -218,6 +391,8 @@ export function Viewport3D() {
       >
         <CameraController />
         <AnimationPlayer />
+        <GLTFExporterComponent />
+        <InteractionController />
 
         {/* Lighting */}
         {shadingMode === 'solid' && (
@@ -279,14 +454,43 @@ export function Viewport3D() {
         </GizmoHelper>
       </Canvas>
 
-      {/* Viewport HUD — shading mode selector */}
+      {/* Edit Mode Indicator — top center pill */}
+      {selectionMode === 'edit' && (
+        <div style={{
+          position: 'absolute', top: '10px', left: '50%', transform: 'translateX(-50%)',
+          padding: '5px 18px', borderRadius: '100px', zIndex: 30,
+          background: 'rgba(20,16,0,0.85)', border: '1px solid rgba(255,180,0,0.4)',
+          backdropFilter: 'blur(12px)',
+          color: '#ffb400', fontSize: '0.68rem', fontFamily: 'var(--font-mono)',
+          fontWeight: 700, letterSpacing: '0.1em', userSelect: 'none',
+          pointerEvents: 'none',
+          display: 'flex', alignItems: 'center', gap: '10px',
+          boxShadow: '0 0 20px rgba(255,180,0,0.1)',
+        }}>
+          <span style={{
+            width: '7px', height: '7px', borderRadius: '50%',
+            background: '#ffb400', display: 'inline-block',
+            boxShadow: '0 0 6px #ffb400',
+            animation: 'pulse 1.8s ease-in-out infinite',
+          }} />
+          EDIT MODE
+          <span style={{ color: 'rgba(255,180,0,0.4)', fontWeight: 400, fontSize: '0.62rem' }}>
+            E: Extrude &nbsp;·&nbsp; I: Inset &nbsp;·&nbsp; Tab: Exit
+          </span>
+        </div>
+      )}
+
+      {/* Shading mode HUD — top right */}
       <div style={{
-        position: 'absolute', top: '8px', right: '90px',
-        display: 'flex', gap: '4px', zIndex: 30,
+        position: 'absolute', top: '10px', right: '80px',
+        display: 'flex', gap: '2px', zIndex: 30,
+        background: 'rgba(10,12,16,0.7)', backdropFilter: 'blur(12px)',
+        border: '1px solid rgba(255,255,255,0.07)', borderRadius: '8px',
+        padding: '3px',
       }}>
         {(['solid', 'wireframe', 'material', 'rendered'] as const).map((mode) => {
-          const icons = { solid: '●', wireframe: '⊡', material: '◈', rendered: '◉' };
-          const labels = { solid: 'Solid', wireframe: 'Wireframe', material: 'Material Preview', rendered: 'Rendered' };
+          const icons: Record<string, string> = { solid: '●', wireframe: '⊡', material: '◈', rendered: '◉' };
+          const labels: Record<string, string> = { solid: 'Solid', wireframe: 'Wireframe', material: 'Material Preview', rendered: 'Rendered' };
           const isActive = shadingMode === mode;
           return (
             <button
@@ -294,29 +498,39 @@ export function Viewport3D() {
               title={labels[mode]}
               onClick={() => useEditor3DStore.getState().setShadingMode(mode)}
               style={{
-                width: '28px', height: '28px', borderRadius: '6px', border: 'none',
-                background: isActive ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.5)',
-                color: isActive ? '#fff' : 'rgba(255,255,255,0.4)',
-                cursor: 'pointer', fontSize: '12px', backdropFilter: 'blur(10px)',
+                padding: '4px 8px', borderRadius: '5px', border: 'none',
+                background: isActive ? 'rgba(71,114,179,0.4)' : 'transparent',
+                color: isActive ? '#8bb8ff' : 'rgba(255,255,255,0.35)',
+                cursor: 'pointer', fontSize: '11px',
                 transition: 'all 0.15s',
+                display: 'flex', alignItems: 'center', gap: '4px',
               }}
             >
-              {icons[mode]}
+              <span>{icons[mode]}</span>
             </button>
           );
         })}
       </div>
 
-      {/* View mode indicator + keyboard hint */}
+      {/* Keyboard shortcut hint — bottom left */}
       <div style={{
-        position: 'absolute', bottom: '12px', left: '16px',
-        fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'rgba(255,255,255,0.35)',
-        userSelect: 'none', pointerEvents: 'none', lineHeight: 1.8,
+        position: 'absolute', bottom: '10px', left: '14px',
+        fontFamily: 'var(--font-mono)', fontSize: '0.6rem',
+        color: 'rgba(255,255,255,0.22)', userSelect: 'none', pointerEvents: 'none',
+        lineHeight: 1.9, display: 'flex', flexDirection: 'column', gap: 0,
       }}>
-        <div>G: Grab | R: Rotate | S: Scale | Alt+G/R/S: Clear</div>
-        <div>X/Del: Delete | Shift+D: Duplicate | H: Hide | Alt+H: Show All</div>
-        <div>Shift+A: Add | Z: Shading | Tab: Edit Mode | I: Keyframe | Space: Play</div>
-        <div>Numpad 1/3/7: Front/Right/Top | Numpad 5: Ortho/Persp</div>
+        {selectionMode === 'edit' ? (
+          <>
+            <div><span style={{ color: 'rgba(255,180,0,0.6)' }}>E</span> Extrude &nbsp; <span style={{ color: 'rgba(255,180,0,0.6)' }}>I</span> Inset &nbsp; <span style={{ color: 'rgba(255,180,0,0.6)' }}>Tab</span> Exit Edit Mode</div>
+            <div>G: Grab · R: Rotate · S: Scale</div>
+          </>
+        ) : (
+          <>
+            <div>G: Grab · R: Rotate · S: Scale · Alt+G/R/S: Clear</div>
+            <div>X/Del: Delete · Ctrl+D: Duplicate · H: Hide · Alt+H: Show All</div>
+            <div>Shift+A: Add · Z: Shading · Tab: Edit Mode · I: Keyframe · Space: Play</div>
+          </>
+        )}
       </div>
     </div>
   );

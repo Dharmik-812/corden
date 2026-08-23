@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { PixelCanvas } from "@/components/editor-2d/PixelCanvas";
 import { PixelToolbar } from "@/components/editor-2d/PixelToolbar";
 import { ColorPalette } from "@/components/editor-2d/ColorPalette";
-import { SaveIndicator } from "@/components/shared/SaveIndicator";
+import { TopMenuBar2D } from "@/components/editor-2d/TopMenuBar2D";
 import { usePixelEditorStore } from "@/stores/pixelEditor-store";
 import { useProjectSave2D } from "@/hooks/useProjectSave";
 
@@ -55,37 +55,45 @@ export default function Editor2DPage() {
   }
 
   return (
-    <div style={{ position: 'fixed', top: 'var(--navbar-height)', left: 0, right: 0, bottom: 0, overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-        <PixelCanvas />
-      </div>
+    <div style={{
+      position: 'fixed', top: 'var(--navbar-height)', left: 0, right: 0, bottom: 0,
+      display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      background: '#080a0f',
+    }}>
+      <TopMenuBar2D onSave={save} saveStatus={saveStatus} title={title} />
 
-      <div style={{
-        position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)',
-        zIndex: 40,
-      }}>
-        <PixelToolbar onSave={save} />
-      </div>
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+          <PixelCanvas />
+        </div>
 
-      <PixelEditorHUD />
+        <div
+          className="editor-2d-toolbar"
+          style={{
+            position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)',
+            zIndex: 40,
+          }}
+        >
+          <PixelToolbar onSave={save} />
+        </div>
 
-      <div style={{
-        position: 'absolute', top: '16px', right: '272px', zIndex: 40,
-      }}>
-        <SaveIndicator status={saveStatus} onSave={save} title={title} />
-      </div>
+        <PixelEditorHUD />
 
-      <div style={{
-        position: 'absolute', right: '16px', top: '16px', bottom: '16px',
-        zIndex: 40, width: '240px',
-        background: 'rgba(8, 8, 12, 0.88)',
-        backdropFilter: 'blur(32px)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: '18px',
-        boxShadow: '0 8px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)',
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-      }}>
-        <ColorPalette />
+        <div
+          className="editor-2d-palette"
+          style={{
+            position: 'absolute', right: '16px', top: '16px', bottom: '16px',
+            zIndex: 40, width: '240px',
+            background: 'rgba(8, 8, 12, 0.88)',
+            backdropFilter: 'blur(32px)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '18px',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)',
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          }}
+        >
+          <ColorPalette />
+        </div>
       </div>
     </div>
   );

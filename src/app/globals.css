@@ -1888,7 +1888,7 @@ code, .code {
 
 .project-card-menu {
   position: absolute;
-  top: 2.5rem;
+  bottom: 2.5rem;
   right: 0;
   z-index: 50;
   min-width: 140px;
@@ -2982,4 +2982,147 @@ code, .code {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   margin-bottom: var(--space-md);
+}
+
+/* ─── Dashboard Glassmorphism & Animations ─── */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.dashboard-hero-bg {
+  background: radial-gradient(circle at 100% 0%, rgba(142, 84, 233, 0.15) 0%, transparent 40%),
+              radial-gradient(circle at 0% 100%, rgba(74, 144, 226, 0.15) 0%, transparent 40%);
+  animation: pulse-bg 10s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-bg {
+  0% { opacity: 0.8; }
+  100% { opacity: 1; }
+}
+
+.project-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.project-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  border-color: rgba(74, 144, 226, 0.3);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(74, 144, 226, 0.1);
+}
+
+.project-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: inherit;
+  background: linear-gradient(to right, rgba(74, 144, 226, 0.1), rgba(142, 84, 233, 0.1));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.project-card:hover::before {
+  opacity: 1;
+}
+
+.project-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── Responsiveness ─── */
+
+/* Tablet (1024px) */
+@media (max-width: 1024px) {
+  .project-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dashboard-stats {
+    gap: 8px;
+  }
+  .editor-right-panel {
+    width: 260px !important;
+  }
+}
+
+/* Mobile (768px) */
+@media (max-width: 768px) {
+  /* Dashboard layout */
+  .dashboard-stats {
+    display: none; /* Hide stats on mobile */
+  }
+  .dashboard-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .dashboard-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .dashboard-filter-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .project-grid {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-quick-actions {
+    flex-direction: column;
+    align-items:stretch;
+  }
+
+  /* 3D Editor layout */
+  .editor-left-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100% !important;
+    height: 50px !important;
+    display: flex;
+    flex-direction: row !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    z-index: 10;
+  }
+  .editor-right-panel {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    bottom: 50px;
+    width: 100% !important;
+    z-index: 20;
+  }
+
+  /* 2D editor */
+  .editor-2d-toolbar {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    height: 56px !important;
+    flex-direction: row !important;
+    justify-content: center;
+    z-index: 50;
+  }
+
+  .editor-2d-palette {
+    display: none;
+  }
+}
+
+/* ─── Pulse Animation ─── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
 }

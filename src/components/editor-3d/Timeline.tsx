@@ -42,14 +42,14 @@ export function Timeline() {
   return (
     <div style={{
       height: '100%', display: 'flex', flexDirection: 'column',
-      background: '#282828',
-      fontFamily: 'var(--font-mono)', userSelect: 'none'
+      background: '#1a1c22',
+      fontFamily: 'var(--font-mono)', userSelect: 'none',
     }}>
       {/* Timeline Header / Controls */}
       <div style={{
-        display: 'flex', alignItems: 'center', padding: '4px 12px',
-        borderBottom: '1px solid #1e1e1e', gap: '16px',
-        background: '#383838'
+        display: 'flex', alignItems: 'center', padding: '4px 10px',
+        borderBottom: '1px solid rgba(255,255,255,0.05)', gap: '12px',
+        background: 'rgba(0,0,0,0.2)', height: '36px', flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <button 

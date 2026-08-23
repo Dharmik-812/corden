@@ -10,7 +10,6 @@ import { Timeline } from "@/components/editor-3d/Timeline";
 import { ShaderPie } from "@/components/editor-3d/ShaderPie";
 import { AddMenu } from "@/components/editor-3d/AddMenu";
 import { TopMenuBar } from "@/components/editor-3d/TopMenuBar";
-import { SaveIndicator } from "@/components/shared/SaveIndicator";
 import { useProjectSave3D } from "@/hooks/useProjectSave";
 
 export function Editor3DClient({ projectId }: { projectId: string }) {
@@ -22,7 +21,7 @@ export function Editor3DClient({ projectId }: { projectId: string }) {
       <div style={{
         position: 'fixed', top: 'var(--navbar-height)', left: 0, right: 0, bottom: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: '#181818', color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem',
+        background: '#13151a', color: 'rgba(255,255,255,0.35)', fontSize: '0.85rem',
       }}>
         Loading project…
       </div>
@@ -30,58 +29,81 @@ export function Editor3DClient({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div style={{ position: 'fixed', top: 'var(--navbar-height)', left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#181818' }}>
-      <TopMenuBar onSave={save} />
+    <div style={{
+      position: 'fixed', top: 'var(--navbar-height)', left: 0, right: 0, bottom: 0,
+      display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      background: '#13151a',
+    }}>
+      {/* Top menu bar — integrates save status */}
+      <TopMenuBar onSave={save} saveStatus={saveStatus} title={title} />
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '4px 12px', background: '#1e1e1e', borderBottom: '1px solid #282828' }}>
-        <SaveIndicator status={saveStatus} onSave={save} title={title} />
-      </div>
-
-      {/* Main Workspace Area */}
+      {/* Main Workspace */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        
-        {/* Left Toolbar (T-Panel) */}
+
+        {/* Left Toolbar */}
         {showLeftPanel && (
-          <div style={{ width: '40px', background: '#282828', borderRight: '1px solid #1e1e1e', flexShrink: 0, overflowY: 'auto' }}>
+          <div
+            className="editor-left-panel"
+            style={{
+              width: '48px', background: '#1a1c22',
+              borderRight: '1px solid rgba(255,255,255,0.05)',
+              flexShrink: 0, overflowY: 'auto', overflowX: 'hidden',
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+            }}
+          >
             <Toolbar3D />
           </div>
         )}
 
-        {/* Center Viewport Area */}
+        {/* Center Viewport */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
-          
           <div style={{ flex: 1, position: 'relative' }}>
             <Viewport3D />
 
-            {/* N-Panel (Docked inside viewport to the right) */}
+            {/* N-Panel */}
             {showNPanel && (
-              <div style={{ 
-                position: 'absolute', right: 0, top: 0, bottom: 0, width: '250px', 
-                background: '#282828', borderLeft: '1px solid #1e1e1e', opacity: 0.95, overflowY: 'auto' 
+              <div style={{
+                position: 'absolute', right: 0, top: 0, bottom: 0, width: '256px',
+                background: 'rgba(22,24,30,0.97)',
+                borderLeft: '1px solid rgba(255,255,255,0.06)',
+                backdropFilter: 'blur(12px)',
+                overflowY: 'auto',
               }}>
                 <NPanelTransform />
               </div>
             )}
           </div>
-          
-          {/* Timeline Panel (Bottom, Docked) */}
+
+          {/* Timeline */}
           {showTimeline && (
-            <div style={{ height: '140px', background: '#282828', borderTop: '1px solid #1e1e1e', flexShrink: 0 }}>
+            <div style={{
+              height: '160px', flexShrink: 0,
+              background: '#1a1c22',
+              borderTop: '1px solid rgba(255,255,255,0.05)',
+            }}>
               <Timeline />
             </div>
           )}
         </div>
 
-        {/* Right Properties Panel (Docked) */}
+        {/* Right Properties Panel */}
         {showRightPanel && (
-          <div style={{ width: '320px', display: 'flex', flexDirection: 'column', background: '#282828', borderLeft: '1px solid #1e1e1e', flexShrink: 0 }}>
-            {/* Outliner (Top Half) */}
-            <div style={{ flex: 1, minHeight: '200px', borderBottom: '1px solid #1e1e1e', overflow: 'hidden' }}>
+          <div
+            className="editor-right-panel"
+            style={{
+              width: '340px', display: 'flex', flexDirection: 'column',
+              background: '#1a1c22',
+              borderLeft: '1px solid rgba(255,255,255,0.05)',
+              flexShrink: 0,
+            }}
+          >
+            {/* Outliner */}
+            <div style={{ height: '220px', borderBottom: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', flexShrink: 0 }}>
               <SceneOutliner />
             </div>
-            
-            {/* Properties (Bottom Half) */}
-            <div style={{ flex: 2, overflow: 'hidden' }}>
+
+            {/* Properties */}
+            <div style={{ flex: 1, overflow: 'hidden' }}>
               <PropertiesEditor />
             </div>
           </div>
@@ -91,7 +113,6 @@ export function Editor3DClient({ projectId }: { projectId: string }) {
       {/* Overlays */}
       <ShaderPie />
       <AddMenu />
-
     </div>
   );
 }

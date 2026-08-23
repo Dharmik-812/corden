@@ -8,7 +8,7 @@ import { Logo } from "@/components/shared/Logo";
 import { SiteHeader } from "@/components/shared/SiteHeader";
 import { SplashScreen } from "@/components/shared/SplashScreen";
 import { InteractiveHero } from "@/components/home/InteractiveHero";
-import { Box, PencilRuler, Sparkles, Layers, Cpu, Zap, ArrowRight, Github } from "lucide-react";
+import { Box, PencilRuler, Sparkles, Layers, Cpu, Zap, ArrowRight } from "lucide-react";
 
 /* ─── Reusable animated section wrapper ─── */
 function FadeInSection({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {

@@ -41,6 +41,7 @@ function CameraObject({ obj }: { obj: SceneObject }) {
         position={obj.position}
         rotation={obj.rotation}
         scale={obj.scale}
+        userData={{ isExportable: true }}
         onClick={(e) => { e.stopPropagation(); setSelectedId(obj.id); }}
       >
         {!isActiveView && (
@@ -104,8 +105,46 @@ function ObjectMesh({ obj }: { obj: SceneObject }) {
       case 'icosphere': base = new THREE.IcosahedronGeometry(0.5, 1); break;
       default: base = new THREE.BoxGeometry(1, 1, 1); break;
     }
+
+    // Apply geometry-level modifiers
+    obj.modifiers.filter(m => m.enabled).forEach(mod => {
+      if (mod.type === 'subdivision') {
+        // Simulate subdivision by replacing with a higher-poly version of the same primitive
+        const levels = Math.max(1, Math.min(4, mod.levels || 1));
+        const seg = Math.min(2 + levels * 8, 64);
+        switch (obj.type) {
+          case 'sphere': base = new THREE.SphereGeometry(0.5, seg, seg); break;
+          case 'cylinder': base = new THREE.CylinderGeometry(0.5, 0.5, 1, seg); break;
+          case 'cone': base = new THREE.ConeGeometry(0.5, 1, seg); break;
+          case 'cube': base = new THREE.BoxGeometry(1, 1, 1, levels, levels, levels); break;
+          case 'torus': base = new THREE.TorusGeometry(0.5, 0.2, seg / 2, seg); break;
+          case 'icosphere': base = new THREE.IcosahedronGeometry(0.5, levels); break;
+          default: base = new THREE.BoxGeometry(1, 1, 1, levels, levels, levels); break;
+        }
+      } else if (mod.type === 'solidify') {
+        const thickness = mod.thickness ?? 0.2;
+        const clone = base.clone();
+        clone.computeVertexNormals();
+        const pos = clone.attributes.position as THREE.BufferAttribute;
+        const norm = clone.attributes.normal as THREE.BufferAttribute;
+        if (pos && norm) {
+          for (let i = 0; i < pos.count; i++) {
+            pos.setXYZ(
+              i,
+              pos.getX(i) + norm.getX(i) * thickness,
+              pos.getY(i) + norm.getY(i) * thickness,
+              pos.getZ(i) + norm.getZ(i) * thickness
+            );
+          }
+          pos.needsUpdate = true;
+        }
+        clone.computeVertexNormals();
+        base = clone;
+      }
+    });
+
     return base;
-  }, [obj.type]);
+  }, [obj.type, obj.modifiers]);
 
   const [snap, setSnap] = useState(false);
 
@@ -119,12 +158,13 @@ function ObjectMesh({ obj }: { obj: SceneObject }) {
 
   // Modifiers simulation (basic visual for array/mirror)
   const renderInstances = () => {
-    let instances = [{ position: new THREE.Vector3(), scale: new THREE.Vector3(1, 1, 1) }];
+    type Instance = { position: THREE.Vector3; scale: THREE.Vector3 };
+    let instances: Instance[] = [{ position: new THREE.Vector3(), scale: new THREE.Vector3(1, 1, 1) }];
 
     obj.modifiers.filter(m => m.enabled).forEach(mod => {
       if (mod.type === 'array') {
         const count = mod.count || 1;
-        const newInstances = [];
+        const newInstances: Instance[] = [];
         for (let i = 0; i < count; i++) {
           instances.forEach(inst => {
             const pos = inst.position.clone().add(new THREE.Vector3((mod.offsetX||0)*i, (mod.offsetY||0)*i, (mod.offsetZ||0)*i));
@@ -134,7 +174,7 @@ function ObjectMesh({ obj }: { obj: SceneObject }) {
         instances = newInstances;
       }
       if (mod.type === 'mirror') {
-        const newInstances = [];
+        const newInstances: Instance[] = [];
         instances.forEach(inst => {
           newInstances.push(inst); // original
           if (mod.mirrorX) {
@@ -157,6 +197,7 @@ function ObjectMesh({ obj }: { obj: SceneObject }) {
         position={obj.position}
         rotation={obj.rotation}
         scale={obj.scale}
+        userData={{ isExportable: true }}
         onClick={(e) => { e.stopPropagation(); setSelectedId(obj.id); }}
       >
         {instances.map((inst, i) => (

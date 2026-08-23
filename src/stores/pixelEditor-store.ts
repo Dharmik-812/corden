@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type PixelTool = 'pencil' | 'eraser' | 'fill' | 'eyedropper';
+export type PixelTool = 'pencil' | 'eraser' | 'fill' | 'eyedropper' | 'line' | 'rectangle';
 export type CanvasSize = 8 | 16 | 32 | 48 | 64 | 128;
 
 const MAX_HISTORY = 60;
@@ -49,6 +49,7 @@ export interface PixelEditorState {
   panX: number;
   panY: number;
   gridVisible: boolean;
+  symmetryMode: 'none' | 'horizontal' | 'vertical' | 'both';
   activePalette: string;
   history: Record<string, string>[];
   historyIndex: number;
@@ -67,6 +68,7 @@ export interface PixelEditorState {
   clearCanvas: () => void;
   undo: () => void;
   redo: () => void;
+  setSymmetryMode: (mode: 'none' | 'horizontal' | 'vertical' | 'both') => void;
   setActivePalette: (name: string) => void;
 }
 
@@ -81,21 +83,54 @@ export const usePixelEditorStore = create<PixelEditorState>((set, get) => ({
   panX: 0,
   panY: 0,
   gridVisible: true,
+  symmetryMode: 'none',
   activePalette: 'Pico-8',
   history: [{}],
   historyIndex: 0,
 
   setPixel: (x, y, color) => {
-    const { canvasWidth, canvasHeight, pixels } = get();
+    const { canvasWidth, canvasHeight, pixels, symmetryMode } = get();
     if (x < 0 || y < 0 || x >= canvasWidth || y >= canvasHeight) return;
-    set({ pixels: { ...pixels, [`${x},${y}`]: color } });
+    
+    const next = { ...pixels, [`${x},${y}`]: color };
+    
+    if (symmetryMode === 'horizontal' || symmetryMode === 'both') {
+      const sx = canvasWidth - 1 - x;
+      if (sx !== x) next[`${sx},${y}`] = color;
+    }
+    if (symmetryMode === 'vertical' || symmetryMode === 'both') {
+      const sy = canvasHeight - 1 - y;
+      if (sy !== y) next[`${x},${sy}`] = color;
+    }
+    if (symmetryMode === 'both') {
+      const sx = canvasWidth - 1 - x;
+      const sy = canvasHeight - 1 - y;
+      if (sx !== x && sy !== y) next[`${sx},${sy}`] = color;
+    }
+    
+    set({ pixels: next });
   },
 
   erasePixel: (x, y) => {
-    const { canvasWidth, canvasHeight, pixels } = get();
+    const { canvasWidth, canvasHeight, pixels, symmetryMode } = get();
     if (x < 0 || y < 0 || x >= canvasWidth || y >= canvasHeight) return;
     const next = { ...pixels };
     delete next[`${x},${y}`];
+
+    if (symmetryMode === 'horizontal' || symmetryMode === 'both') {
+      const sx = canvasWidth - 1 - x;
+      if (sx !== x) delete next[`${sx},${y}`];
+    }
+    if (symmetryMode === 'vertical' || symmetryMode === 'both') {
+      const sy = canvasHeight - 1 - y;
+      if (sy !== y) delete next[`${x},${sy}`];
+    }
+    if (symmetryMode === 'both') {
+      const sx = canvasWidth - 1 - x;
+      const sy = canvasHeight - 1 - y;
+      if (sx !== x && sy !== y) delete next[`${sx},${sy}`];
+    }
+
     set({ pixels: next });
   },
 
@@ -139,6 +174,7 @@ export const usePixelEditorStore = create<PixelEditorState>((set, get) => ({
   setZoom: (zoom) => set({ zoom: Math.max(2, Math.min(64, zoom)) }),
   setPan: (x, y) => set({ panX: x, panY: y }),
   toggleGrid: () => set((s) => ({ gridVisible: !s.gridVisible })),
+  setSymmetryMode: (mode) => set({ symmetryMode: mode }),
   setActivePalette: (name) => set({ activePalette: name }),
 
   setCanvasSize: (w, h) => {

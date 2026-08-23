@@ -202,7 +202,7 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="page-shell page-shell--dashboard">
+    <div className="page-shell page-shell--dashboard dashboard-hero-bg">
       <div className="page-mesh" aria-hidden />
 
       <main className="page-content page-content--dashboard">
@@ -236,7 +236,7 @@ export default function DashboardPage() {
         </motion.header>
 
         <motion.div
-          className="dashboard-toolbar"
+          className="dashboard-toolbar glass-panel"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.08, duration: 0.45 }}
@@ -299,7 +299,7 @@ export default function DashboardPage() {
         )}
 
         <motion.div
-          className="dashboard-quick-access"
+          className="dashboard-quick-access glass-panel"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}

@@ -58,7 +58,7 @@ export function SiteHeader({ variant: variantProp }: SiteHeaderProps) {
 
   const isMarketing = variant === "marketing";
   const isDashboard = variant === "dashboard";
-  const showNav = (isMarketing || variant === "app") && variant !== "minimal";
+  const showNav = (isMarketing || variant === "app");
 
   return (
     <>

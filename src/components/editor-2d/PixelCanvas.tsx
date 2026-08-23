@@ -12,7 +12,8 @@ export function PixelCanvas() {
   const panStartRef = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
   const lastPixelRef = useRef<{ x: number; y: number } | null>(null);
   const hoverPixelRef = useRef<{ x: number; y: number } | null>(null);
-  const rafRef = useRef<number>();
+  const drawStartRef = useRef<{ x: number, y: number, btn: number } | null>(null);
+  const rafRef = useRef<number>(0);
 
   const store = usePixelEditorStore();
 

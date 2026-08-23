@@ -18,6 +18,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Corden",
   description: "A browser-based 2D + 3D architectural workspace. Draft, model, create.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

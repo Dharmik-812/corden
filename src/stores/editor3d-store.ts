@@ -9,6 +9,7 @@ export type EditSubMode = 'vertex' | 'edge' | 'face';
 export type PivotPoint = 'individual' | 'median' | 'cursor' | 'active';
 export type ObjectType = 'mesh' | 'light' | 'camera';
 export type EnvironmentPreset = 'studio' | 'sunset' | 'dawn' | 'night' | 'warehouse' | 'forest' | 'apartment' | 'city';
+export type InteractionMode = 'select' | 'cursor' | 'measure' | 'annotate';
 
 export interface Modifier {
   id: string;
@@ -31,6 +32,17 @@ export interface Keyframe {
   scale?: [number, number, number];
 }
 
+export interface Annotation {
+  id: string;
+  points: [number, number, number][];
+}
+
+export interface Measurement {
+  id: string;
+  start: [number, number, number];
+  end: [number, number, number] | null;
+}
+
 export interface SceneObject {
   id: string;
   name: string;
@@ -47,6 +59,7 @@ export interface SceneObject {
   emissiveIntensity?: number;
   opacity?: number;
   wireframe?: boolean;
+  smoothShading?: boolean;
   // Light properties (when objectType === 'light')
   lightType?: LightType;
   lightColor?: string;
@@ -97,6 +110,15 @@ export interface Editor3DState {
 
   transformMode: TransformMode;
   setTransformMode: (mode: TransformMode) => void;
+
+  interactionMode: InteractionMode;
+  setInteractionMode: (mode: InteractionMode) => void;
+
+  annotations: Annotation[];
+  setAnnotations: (ann: Annotation[]) => void;
+  
+  measurements: Measurement[];
+  setMeasurements: (meas: Measurement[]) => void;
 
   shadingMode: ShadingMode;
   setShadingMode: (mode: ShadingMode) => void;
@@ -165,7 +187,7 @@ export interface Editor3DState {
   redo: () => void;
 
   // Modifiers
-  addModifier: (objectId: string, type: Modifier['type']) => void;
+  addModifier: (objectId: string, type: Modifier['type'], extra?: Partial<Modifier>) => void;
   removeModifier: (objectId: string, modifierId: string) => void;
   updateModifier: (objectId: string, modifierId: string, updates: Partial<Modifier>) => void;
   toggleModifier: (objectId: string, modifierId: string) => void;
@@ -187,6 +209,7 @@ const defaultCube: SceneObject = {
   hidden: false,
   renderVisible: true,
   locked: false,
+  smoothShading: false,
   modifiers: [],
   keyframes: [],
 };
@@ -213,6 +236,7 @@ export const useEditor3DStore = create<Editor3DState>((set, get) => ({
       hidden: false,
       renderVisible: true,
       locked: false,
+      smoothShading: type !== 'cube',
       modifiers: [],
       keyframes: [],
       ...extra,
@@ -246,6 +270,7 @@ export const useEditor3DStore = create<Editor3DState>((set, get) => ({
       hidden: false,
       renderVisible: true,
       locked: false,
+      smoothShading: false,
       modifiers: [],
       keyframes: [],
     };
@@ -271,6 +296,7 @@ export const useEditor3DStore = create<Editor3DState>((set, get) => ({
       hidden: false,
       renderVisible: true,
       locked: false,
+      smoothShading: false,
       modifiers: [],
       keyframes: [],
     };
@@ -317,6 +343,15 @@ export const useEditor3DStore = create<Editor3DState>((set, get) => ({
 
   transformMode: 'translate',
   setTransformMode: (mode) => set({ transformMode: mode }),
+
+  interactionMode: 'select',
+  setInteractionMode: (mode) => set({ interactionMode: mode }),
+
+  annotations: [],
+  setAnnotations: (ann) => set({ annotations: ann }),
+
+  measurements: [],
+  setMeasurements: (meas) => set({ measurements: meas }),
 
   shadingMode: 'solid',
   setShadingMode: (mode) => set({ shadingMode: mode }),
@@ -421,7 +456,7 @@ export const useEditor3DStore = create<Editor3DState>((set, get) => ({
     set({ objects: entry.objects, selectedId: entry.selectedId, historyIndex: idx });
   },
 
-  addModifier: (objectId, type) => {
+  addModifier: (objectId, type, extra) => {
     const mod: Modifier = {
       id: `mod_${Date.now()}`,
       type,
@@ -430,6 +465,7 @@ export const useEditor3DStore = create<Editor3DState>((set, get) => ({
       mirrorX: true, mirrorY: false, mirrorZ: false,
       thickness: 0.1,
       count: 3, offsetX: 2, offsetY: 0, offsetZ: 0,
+      ...extra
     };
     set((state) => ({
       objects: state.objects.map(o => o.id === objectId

@@ -13,7 +13,7 @@ export function TexturedMaterial({ obj, isSelected, shadingMode }: { obj: SceneO
   }
 
   if (shadingMode === 'solid') {
-    return <meshStandardMaterial color={color} roughness={1} metalness={0} wireframe={obj.wireframe} />;
+    return <meshStandardMaterial color={color} roughness={1} metalness={0} wireframe={obj.wireframe} flatShading={!obj.smoothShading} />;
   }
 
   // Load textures if available
@@ -39,6 +39,7 @@ export function TexturedMaterial({ obj, isSelected, shadingMode }: { obj: SceneO
         clearcoatRoughness={0.1}
         side={THREE.DoubleSide}
         wireframe={obj.wireframe}
+        flatShading={!obj.smoothShading}
       />
     );
   }
@@ -76,6 +77,7 @@ function AsyncMaterial({ obj, color }: { obj: SceneObject, color: string }) {
       clearcoatRoughness={0.1}
       side={THREE.DoubleSide}
       wireframe={obj.wireframe}
+      flatShading={!obj.smoothShading}
       {...textureMap}
     />
   );
