@@ -17,7 +17,7 @@ export type SaveStatus = "saved" | "saving" | "unsaved";
 
 export function useProjectSave2D(projectId: string) {
   const router = useRouter();
-  const [resolvedId, setResolvedId] = useState<string | null>(null);
+  const resolvedId = projectId === "new" ? null : projectId;
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [title, setTitle] = useState("Untitled 2D Draft");
   const loadedRef = useRef(false);
@@ -30,9 +30,7 @@ export function useProjectSave2D(projectId: string) {
     if (projectId === "new") {
       const meta = createProject("2d");
       router.replace(`/editor/2d/${meta.id}`);
-      return;
     }
-    setResolvedId(projectId);
   }, [projectId, router]);
 
   useEffect(() => {
@@ -41,6 +39,7 @@ export function useProjectSave2D(projectId: string) {
 
     const data = loadProject2D(resolvedId);
     const meta = getProjectMeta(resolvedId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (meta) setTitle(meta.title);
 
     if (data) {
@@ -122,7 +121,7 @@ export function useProjectSave2D(projectId: string) {
 
 export function useProjectSave3D(projectId: string) {
   const router = useRouter();
-  const [resolvedId, setResolvedId] = useState<string | null>(null);
+  const resolvedId = projectId === "new" ? null : projectId;
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [title, setTitle] = useState("Untitled 3D Scene");
   const loadedRef = useRef(false);
@@ -135,9 +134,7 @@ export function useProjectSave3D(projectId: string) {
     if (projectId === "new") {
       const meta = createProject("3d");
       router.replace(`/editor/3d/${meta.id}`);
-      return;
     }
-    setResolvedId(projectId);
   }, [projectId, router]);
 
   useEffect(() => {
@@ -146,6 +143,7 @@ export function useProjectSave3D(projectId: string) {
 
     const data = loadProject3D(resolvedId);
     const meta = getProjectMeta(resolvedId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (meta) setTitle(meta.title);
 
     if (data) {

@@ -115,6 +115,7 @@ export function TopMenuBar2D({ onSave, saveStatus, title }: { onSave?: (title?: 
 
   return (
     <div ref={menuBarRef} style={{
+      position: "relative", zIndex: 100,
       display: "flex", alignItems: "center", height: "38px",
       background: "rgba(10,11,16,0.97)",
       backdropFilter: "blur(24px)",

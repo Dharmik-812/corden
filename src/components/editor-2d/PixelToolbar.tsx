@@ -94,17 +94,14 @@ function ToolButton({ icon, label, shortcut, active, danger, onClick }: ToolButt
       onClick={onClick}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
+      className={styles.toolBtn}
       style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        width: "40px", height: "40px", borderRadius: "10px", border: "none",
-        cursor: "pointer", transition: "all 0.15s ease",
         background: active
           ? "linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-brass) 100%)"
           : hov ? "rgba(255,255,255,0.08)" : "transparent",
         color: active ? "#fff" : danger && hov ? "#ff6b6b" : "var(--text-secondary)",
         boxShadow: active ? "0 4px 16px rgba(74,144,226,0.4)" : "none",
         transform: active ? "scale(1)" : hov ? "scale(1.05)" : "scale(1)",
-        flexShrink: 0,
       }}
     >
       {icon}
@@ -281,11 +278,10 @@ export function PixelToolbar({ onSave }: { onSave?: () => void }) {
           <button
             title="Canvas Size"
             onClick={() => { setShowSizeMenu(v => !v); setShowShapeMenu(false); setShowSymmetryMenu(false); setShowExportMenu(false); }}
+            className={styles.toolBtnText}
             style={{
-              display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column",
-              width: "40px", height: "40px", borderRadius: "10px", border: "none",
-              cursor: "pointer", background: showSizeMenu ? "rgba(255,255,255,0.1)" : "transparent",
-              color: "var(--text-secondary)", transition: "all 0.15s", gap: "1px",
+              background: showSizeMenu ? "rgba(255,255,255,0.1)" : "transparent",
+              color: "var(--text-secondary)", gap: "1px",
             }}
           >
             <span style={{ fontSize: "0.55rem", lineHeight: 1, fontFamily: "var(--font-mono)", fontWeight: 700 }}>{canvasWidth}</span>
@@ -327,10 +323,8 @@ export function PixelToolbar({ onSave }: { onSave?: () => void }) {
           <button
             title="Export PNG"
             onClick={() => { setShowExportMenu(v => !v); setShowShapeMenu(false); setShowSymmetryMenu(false); setShowSizeMenu(false); }}
+            className={styles.toolBtnText}
             style={{
-              display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column",
-              width: "40px", height: "40px", borderRadius: "10px", border: "none",
-              cursor: "pointer", transition: "all 0.15s ease",
               background: showExportMenu ? "rgba(255,255,255,0.1)" : "transparent",
               color: "var(--text-secondary)", gap: "1px",
             }}

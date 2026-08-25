@@ -28,9 +28,56 @@
   flex-shrink: 0;
 }
 
+.toolBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.toolBtnText {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
 /* ══════════════════════════════════════════════════════════════
    Responsive breakpoints
    ══════════════════════════════════════════════════════════════ */
+
+/* If the screen height is too short to fit the toolbar, scale it down */
+@media (max-height: 800px) {
+  .toolbarWrapper {
+    gap: 4px;
+    width: 44px;
+  }
+  .panelGroup {
+    padding: 6px 4px;
+    gap: 2px;
+  }
+  .toolBtn, .toolBtnText {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+  .toolBtn svg, .toolBtnText svg {
+    transform: scale(0.85);
+  }
+}
 
 @media (max-width: 768px) {
   .toolbarWrapper {

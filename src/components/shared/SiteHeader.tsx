@@ -48,6 +48,7 @@ export function SiteHeader({ variant: variantProp }: SiteHeaderProps) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMobileOpen(false);
   }, [pathname]);
 

@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { usePixelEditorStore, PALETTES } from "@/stores/pixelEditor-store";
-import { ChevronDown, Pipette, RotateCcw, Plus } from "lucide-react";
-import { CustomPaletteManager } from "./CustomPaletteManager";
+import { ChevronDown, Pipette, RotateCcw, Plus, Trash2, Download, Upload, Check } from "lucide-react";
 
 const RECENTLY_USED_MAX = 16;
 
@@ -20,6 +19,35 @@ export function ColorPalette() {
   const [recentColors, setRecentColors] = useState<string[]>([]);
   const [showPaletteMenu, setShowPaletteMenu] = useState(false);
   const [activeColorTarget, setActiveColorTarget] = useState<"primary" | "secondary">("primary");
+
+  const [showNewPaletteDialog, setShowNewPaletteDialog] = useState(false);
+  const [newPaletteName, setNewPaletteName] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const { createCustomPalette, deleteCustomPalette } = usePixelEditorStore.getState();
+
+  const handleExportHex = () => {
+    const content = palette.join("\n");
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `${activePalette}.hex`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportHex = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const text = ev.target?.result as string;
+      const colors = text.split("\n").map(l => l.trim()).filter(l => /^#[0-9a-fA-F]{6}$/.test(l));
+      if (!colors.length) return alert("No valid hex colors found in file.");
+      const name = file.name.replace(/\.hex$/i, "") || "Imported";
+      createCustomPalette(name, colors);
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
 
   const handlePaletteColorClick = (color: string, btn: "left" | "right") => {
     if (btn === "right") setSecondaryColor(color);
@@ -147,67 +175,173 @@ export function ColorPalette() {
         </div>
       </div>
 
-      {/* ── Palette Selector ── */}
+      {/* ── Palette Selector & Tools ── */}
       <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
-        <div style={{ position: "relative" }}>
-          <button
-            onClick={() => setShowPaletteMenu(v => !v)}
-            style={{
-              width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "8px 12px", borderRadius: "9px",
-              border: `1px solid ${showPaletteMenu ? "rgba(74,144,226,0.4)" : "rgba(255,255,255,0.08)"}`,
-              background: showPaletteMenu ? "rgba(74,144,226,0.08)" : "rgba(255,255,255,0.03)",
-              color: "var(--text-primary)", fontFamily: "var(--font-mono)", fontSize: "0.75rem",
-              cursor: "pointer", transition: "all 0.15s",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              {/* Palette preview dots */}
-              <div style={{ display: "flex", gap: "2px" }}>
-                {palette.slice(0, 6).map((c, i) => (
-                  <div key={i} style={{ width: "7px", height: "7px", borderRadius: "2px", background: c }} />
-                ))}
+        <div style={{ display: "flex", gap: "6px", alignItems: "stretch", marginBottom: showNewPaletteDialog ? "8px" : "0" }}>
+          <div style={{ position: "relative", flex: 1 }}>
+            <button
+              onClick={() => setShowPaletteMenu(v => !v)}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "6px 8px", borderRadius: "6px", height: "100%",
+                border: `1px solid ${showPaletteMenu ? "rgba(74,144,226,0.4)" : "rgba(255,255,255,0.08)"}`,
+                background: showPaletteMenu ? "rgba(74,144,226,0.08)" : "rgba(255,255,255,0.03)",
+                color: "var(--text-primary)", fontFamily: "var(--font-mono)", fontSize: "0.7rem",
+                cursor: "pointer", transition: "all 0.15s",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <div style={{ display: "flex", gap: "1px" }}>
+                  {palette.slice(0, 4).map((c, i) => (
+                    <div key={i} style={{ width: "6px", height: "6px", borderRadius: "1px", background: c }} />
+                  ))}
+                </div>
+                <span>{activePalette}</span>
               </div>
-              <span>{activePalette}</span>
-            </div>
-            <ChevronDown size={13} style={{ transform: showPaletteMenu ? "rotate(180deg)" : "none", transition: "transform 0.2s", opacity: 0.5 }} />
-          </button>
+              <ChevronDown size={12} style={{ transform: showPaletteMenu ? "rotate(180deg)" : "none", transition: "transform 0.2s", opacity: 0.5 }} />
+            </button>
 
-          {showPaletteMenu && (
-            <div style={{
-              position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 200,
-              background: "rgba(10,11,16,0.98)", backdropFilter: "blur(40px)",
-              border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px",
-              padding: "6px", boxShadow: "0 16px 48px rgba(0,0,0,0.8)",
-              maxHeight: "240px", overflowY: "auto",
-            }}>
-              {Object.keys(PALETTES).map(name => (
-                <button
-                  key={name}
-                  onClick={() => { setActivePalette(name); setShowPaletteMenu(false); }}
-                  style={{
-                    width: "100%", padding: "8px 10px", borderRadius: "8px", border: "none",
-                    textAlign: "left", cursor: "pointer", fontSize: "0.73rem",
-                    fontFamily: "var(--font-mono)",
-                    background: activePalette === name ? "rgba(74,144,226,0.15)" : "transparent",
-                    color: activePalette === name ? "var(--accent-primary)" : "var(--text-primary)",
-                    transition: "background 0.12s", display: "flex", alignItems: "center", gap: "10px",
-                  }}
-                  onMouseEnter={e => { if (activePalette !== name) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
-                  onMouseLeave={e => { if (activePalette !== name) e.currentTarget.style.background = "transparent"; }}
-                >
-                  <div style={{ display: "flex", gap: "2px", flexShrink: 0 }}>
-                    {PALETTES[name].slice(0, 6).map((c, i) => (
-                      <div key={i} style={{ width: "8px", height: "8px", borderRadius: "2px", background: c }} />
+            {showPaletteMenu && (
+              <div style={{
+                position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 200,
+                background: "rgba(10,11,16,0.98)", backdropFilter: "blur(40px)",
+                border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px",
+                padding: "4px", boxShadow: "0 16px 48px rgba(0,0,0,0.8)",
+                maxHeight: "240px", overflowY: "auto",
+              }}>
+                <div style={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.3)", padding: "4px 8px" }}>BUILT-IN</div>
+                {Object.keys(PALETTES).map(name => (
+                  <button
+                    key={name}
+                    onClick={() => { setActivePalette(name); setShowPaletteMenu(false); }}
+                    style={{
+                      width: "100%", padding: "6px 8px", borderRadius: "6px", border: "none",
+                      textAlign: "left", cursor: "pointer", fontSize: "0.7rem", fontFamily: "var(--font-mono)",
+                      background: activePalette === name ? "rgba(74,144,226,0.15)" : "transparent",
+                      color: activePalette === name ? "var(--accent-primary)" : "var(--text-primary)",
+                      display: "flex", alignItems: "center", gap: "8px",
+                    }}
+                    onMouseEnter={e => { if (activePalette !== name) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                    onMouseLeave={e => { if (activePalette !== name) e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <span style={{ flex: 1 }}>{name}</span>
+                  </button>
+                ))}
+                
+                {Object.keys(customPalettes).length > 0 && (
+                  <>
+                    <div style={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.3)", padding: "6px 8px 4px", marginTop: "4px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>CUSTOM</div>
+                    {Object.keys(customPalettes).map(name => (
+                      <button
+                        key={name}
+                        onClick={() => { setActivePalette(name); setShowPaletteMenu(false); }}
+                        style={{
+                          width: "100%", padding: "6px 8px", borderRadius: "6px", border: "none",
+                          textAlign: "left", cursor: "pointer", fontSize: "0.7rem", fontFamily: "var(--font-mono)",
+                          background: activePalette === name ? "rgba(74,144,226,0.15)" : "transparent",
+                          color: activePalette === name ? "var(--accent-primary)" : "var(--text-primary)",
+                          display: "flex", alignItems: "center", gap: "8px",
+                        }}
+                        onMouseEnter={e => { if (activePalette !== name) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                        onMouseLeave={e => { if (activePalette !== name) e.currentTarget.style.background = "transparent"; }}
+                      >
+                        <span style={{ flex: 1 }}>★ {name}</span>
+                      </button>
                     ))}
-                  </div>
-                  <span style={{ flex: 1 }}>{name}</span>
-                  <span style={{ color: "rgba(255,255,255,0.25)", fontSize: "0.62rem" }}>{PALETTES[name].length}</span>
-                </button>
-              ))}
-            </div>
-          )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: "2px" }}>
+            <button
+              title="New custom palette"
+              onClick={() => setShowNewPaletteDialog(!showNewPaletteDialog)}
+              style={iconBtnStyle}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+              onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+            >
+              <Plus size={12} />
+            </button>
+            <button
+              title="Import .hex file"
+              onClick={() => fileRef.current?.click()}
+              style={iconBtnStyle}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+              onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+            >
+              <Upload size={12} />
+            </button>
+            <input ref={fileRef} type="file" accept=".hex,.txt" style={{ display: "none" }} onChange={handleImportHex} />
+            <button
+              title="Export as .hex"
+              onClick={handleExportHex}
+              style={iconBtnStyle}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+              onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+            >
+              <Download size={12} />
+            </button>
+            {isCustomPalette && (
+              <button
+                title="Delete this palette"
+                onClick={() => { if (confirm(`Delete palette "${activePalette}"?`)) deleteCustomPalette(activePalette); }}
+                style={{ ...iconBtnStyle, color: "#ff6b6b" }}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,80,80,0.15)"}
+                onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+              >
+                <Trash2 size={12} />
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* New palette dialog */}
+        {showNewPaletteDialog && (
+          <div style={{
+            background: "rgba(20,22,30,0.98)", border: "1px solid rgba(71,114,179,0.4)",
+            borderRadius: "6px", padding: "8px", display: "flex", flexDirection: "column", gap: "6px",
+          }}>
+            <span style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.6)" }}>New palette name:</span>
+            <div style={{ display: "flex", gap: "4px" }}>
+              <input
+                autoFocus
+                value={newPaletteName}
+                onChange={e => setNewPaletteName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && newPaletteName.trim()) {
+                    createCustomPalette(newPaletteName.trim(), [primaryColor]);
+                    setNewPaletteName("");
+                    setShowNewPaletteDialog(false);
+                  }
+                  if (e.key === "Escape") setShowNewPaletteDialog(false);
+                }}
+                placeholder="My Palette"
+                style={{
+                  flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)",
+                  color: "#fff", outline: "none", borderRadius: "4px", padding: "4px 6px", fontSize: "0.7rem", minWidth: 0
+                }}
+              />
+              <button
+                disabled={!newPaletteName.trim()}
+                onClick={() => {
+                  createCustomPalette(newPaletteName.trim(), [primaryColor]);
+                  setNewPaletteName("");
+                  setShowNewPaletteDialog(false);
+                }}
+                style={{
+                  padding: "4px 10px", borderRadius: "4px", border: "none",
+                  background: newPaletteName.trim() ? "rgba(71,114,179,0.5)" : "rgba(255,255,255,0.05)",
+                  color: newPaletteName.trim() ? "#fff" : "rgba(255,255,255,0.2)",
+                  cursor: newPaletteName.trim() ? "pointer" : "default", fontSize: "0.7rem",
+                }}
+              >
+                <Check size={12} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Palette Swatches + Custom Manager ── */}
@@ -300,17 +434,14 @@ export function ColorPalette() {
           </div>
         )}
 
-        {/* Divider */}
-        <div style={{ height: "1px", background: "rgba(255,255,255,0.05)", margin: "4px 0" }} />
-
-        {/* Custom Palette Manager */}
-        <div style={{ padding: "12px 14px 16px" }}>
-          <div style={{ fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: "10px" }}>
-            Custom Palettes
-          </div>
-          <CustomPaletteManager />
-        </div>
       </div>
     </div>
   );
 }
+
+const iconBtnStyle: React.CSSProperties = {
+  display: "flex", alignItems: "center", justifyContent: "center",
+  width: "28px", height: "28px", borderRadius: "6px", border: "none",
+  background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.6)",
+  cursor: "pointer", transition: "all 0.15s", flexShrink: 0,
+};

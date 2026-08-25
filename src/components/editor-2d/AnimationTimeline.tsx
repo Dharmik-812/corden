@@ -89,7 +89,7 @@ export function AnimationTimeline() {
     return () => { if (playRef.current) clearInterval(playRef.current); };
   }, [isPlaying, fps, frames.length]);
 
-  const handleExportGif = async () => {
+  const handleExportGif = async (scale: number = 4) => {
     if (typeof window === "undefined") return;
     setIsExporting(true);
     setShowExportMenu(false);
@@ -98,12 +98,12 @@ export function AnimationTimeline() {
       const { canvasWidth, canvasHeight } = usePixelEditorStore.getState();
       const gif = new GIF({
         workers: 2, quality: 10,
-        width: canvasWidth * 8, height: canvasHeight * 8,
+        width: canvasWidth * scale, height: canvasHeight * scale,
         workerScript: "/gif.worker.js",
       });
       for (const frame of frames) {
         const off = document.createElement("canvas");
-        off.width = canvasWidth * 8; off.height = canvasHeight * 8;
+        off.width = canvasWidth * scale; off.height = canvasHeight * scale;
         const ctx = off.getContext("2d")!;
         ctx.fillStyle = "#000"; ctx.fillRect(0, 0, off.width, off.height);
         for (const layer of frame.layers) {
@@ -112,7 +112,7 @@ export function AnimationTimeline() {
           for (const [key, color] of Object.entries(layer.pixels)) {
             const [px, py] = key.split(",").map(Number);
             ctx.fillStyle = color;
-            ctx.fillRect(px * 8, py * 8, 8, 8);
+            ctx.fillRect(px * scale, py * scale, scale, scale);
           }
         }
         ctx.globalAlpha = 1;
@@ -121,7 +121,7 @@ export function AnimationTimeline() {
       gif.on("finished", (blob: Blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.href = url; a.download = "corden-animation.gif"; a.click();
+        a.href = url; a.download = `corden-animation-${canvasWidth * scale}x${canvasHeight * scale}.gif`; a.click();
         URL.revokeObjectURL(url);
         setIsExporting(false);
       });
@@ -225,21 +225,25 @@ export function AnimationTimeline() {
               position: "absolute", bottom: "calc(100% + 4px)", left: 0,
               background: "rgba(12,13,18,0.98)", backdropFilter: "blur(40px)",
               border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px",
-              padding: "6px", zIndex: 200, minWidth: "130px",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.7)",
+              padding: "6px", zIndex: 200, minWidth: "160px",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.7)", display: "flex", flexDirection: "column", gap: "2px"
             }}>
-              <button
-                onClick={handleExportGif}
-                style={{
-                  width: "100%", padding: "7px 10px", borderRadius: "7px", border: "none",
-                  background: "transparent", color: "rgba(255,255,255,0.82)", cursor: "pointer",
-                  textAlign: "left", fontSize: "0.73rem", display: "flex", alignItems: "center", gap: "8px",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = "rgba(74,144,226,0.15)"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
-              >
-                <Film size={12} /> Export GIF
-              </button>
+              <div style={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.3)", padding: "4px 8px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Export GIF</div>
+              {[1, 2, 4, 8].map(scale => (
+                <button
+                  key={scale}
+                  onClick={() => handleExportGif(scale)}
+                  style={{
+                    width: "100%", padding: "7px 10px", borderRadius: "7px", border: "none",
+                    background: "transparent", color: "rgba(255,255,255,0.82)", cursor: "pointer",
+                    textAlign: "left", fontSize: "0.73rem", display: "flex", alignItems: "center", gap: "8px",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(74,144,226,0.15)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                >
+                  <Film size={12} /> {scale}x Scale
+                </button>
+              ))}
             </div>
           )}
         </div>
