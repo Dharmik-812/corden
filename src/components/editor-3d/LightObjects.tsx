@@ -1,9 +1,15 @@
-"use client";
-
-import { useEditor3DStore, SceneObject } from "@/stores/editor3d-store";
+import { useEditor3DStore, SceneObject, TransformMode } from "@/stores/editor3d-store";
 import { useRef, useEffect, useState } from "react";
 import * as THREE from "three";
 import { TransformControls } from "@react-three/drei";
+
+interface LightObjectProps {
+  light: SceneObject;
+  showGizmos: boolean;
+  selectedId: string | null;
+  transformMode: TransformMode;
+  updateObject: (id: string, updates: Partial<SceneObject>) => void;
+}
 
 export function LightObjects() {
   const { objects, selectedId, transformMode, updateObject, shadingMode } = useEditor3DStore();
@@ -21,7 +27,7 @@ export function LightObjects() {
   );
 }
 
-function LightObject({ light, showGizmos, selectedId, transformMode, updateObject }: any) {
+function LightObject({ light, showGizmos, selectedId, transformMode, updateObject }: LightObjectProps) {
   const isSelected = selectedId === light.id;
   const groupRef = useRef<THREE.Group>(null);
   const [target, setTarget] = useState<THREE.Group | null>(null);

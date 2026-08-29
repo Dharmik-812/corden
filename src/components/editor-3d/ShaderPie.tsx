@@ -1,19 +1,19 @@
 "use client";
 
 import { useEditor3DStore, ShadingMode } from "@/stores/editor3d-store";
-import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 export function ShaderPie() {
   const { showShaderPie, setShowShaderPie, setShadingMode, shadingMode } = useEditor3DStore();
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const initialPos = useRef({ x: 0, y: 0 });
+  const [initialPos, setInitialPos] = useState({ x: 0, y: 0 });
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     if (showShaderPie) {
-      initialPos.current = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-      setMousePos(initialPos.current);
+      const pos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+      setInitialPos(pos);
+      setMousePos(pos);
       setIsReady(true);
     } else {
       setIsReady(false);
@@ -31,8 +31,8 @@ export function ShaderPie() {
 
   if (!showShaderPie || !isReady) return null;
 
-  const dx = mousePos.x - initialPos.current.x;
-  const dy = mousePos.y - initialPos.current.y;
+  const dx = mousePos.x - initialPos.x;
+  const dy = mousePos.y - initialPos.y;
   
   // Calculate which slice is hovered based on angle
   let angle = Math.atan2(dy, dx) * (180 / Math.PI);

@@ -59,15 +59,17 @@ function AsyncMaterial({ obj, color }: { obj: SceneObject, color: string }) {
     ...(obj.roughnessMap ? { roughnessMap: obj.roughnessMap } : {})
   });
 
-  // Apply color space for albedo
-  if (textureMap.map) {
-    textureMap.map.colorSpace = THREE.SRGBColorSpace;
+  // Apply color space for albedo via cloning to avoid immutability lint error
+  const map = textureMap.map ? textureMap.map.clone() : undefined;
+  if (map) {
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.needsUpdate = true;
   }
 
   return (
     <meshPhysicalMaterial 
       color={color}
-      roughness={obj.roughnessMap ? 1 : obj.roughness} // If map exists, use it fully
+      roughness={obj.roughnessMap ? 1 : obj.roughness}
       metalness={obj.metalness}
       emissive={obj.emissive || '#000000'}
       emissiveIntensity={obj.emissiveIntensity || 0}
@@ -79,6 +81,7 @@ function AsyncMaterial({ obj, color }: { obj: SceneObject, color: string }) {
       wireframe={obj.wireframe}
       flatShading={!obj.smoothShading}
       {...textureMap}
+      map={map}
     />
   );
 }

@@ -12,13 +12,14 @@ import { BlendFunction } from "postprocessing";
 import { Physics } from "@react-three/rapier";
 
 function CameraController() {
-  const { camera, gl } = useThree();
-  const { viewPreset, isOrtho, objects, selectedId } = useEditor3DStore();
+  const { camera } = useThree();
+  const { viewPreset, objects, selectedId } = useEditor3DStore();
   const prevPreset = useRef(viewPreset);
 
   // Find an active camera from scene objects
   const sceneCamera = objects.find(o => o.objectType === 'camera' && o.id === selectedId) || objects.find(o => o.objectType === 'camera');
 
+  // eslint-disable-next-line react-hooks/immutability
   useEffect(() => {
     if (viewPreset === prevPreset.current && viewPreset !== 'camera' && viewPreset !== 'perspective') return;
     prevPreset.current = viewPreset;
@@ -52,7 +53,7 @@ function CameraController() {
 }
 
 function AnimationPlayer() {
-  const { isPlaying, currentFrame, totalFrames, fps, setCurrentFrame, setIsPlaying, objects, updateObject } = useEditor3DStore();
+  const { isPlaying, currentFrame, totalFrames, fps, setCurrentFrame, objects, updateObject } = useEditor3DStore();
   const lastTimeRef = useRef(0);
   const accRef = useRef(0);
 

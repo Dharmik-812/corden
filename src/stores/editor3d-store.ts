@@ -251,7 +251,7 @@ export const useEditor3DStore = create<Editor3DState>((set, get) => ({
     return {
       postFX: {
         ...state.postFX,
-        [key]: { ...(state.postFX[key] as any), ...updates }
+        [key]: { ...(state.postFX[key] as Record<string, unknown>), ...updates }
       }
     };
   }),

@@ -1,8 +1,59 @@
 "use client";
 
-import { useEditor3DStore, PrimitiveType, LightType } from "@/stores/editor3d-store";
+import { useEditor3DStore } from "@/stores/editor3d-store";
 import { useState, useRef, useEffect } from "react";
 import { ChevronRight, Save, Layers, Edit3, Box } from "lucide-react";
+
+const dropdownStyle: React.CSSProperties = {
+  position: 'absolute', top: 'calc(100% + 2px)', left: 0, minWidth: '180px',
+  background: '#1e2026', border: '1px solid rgba(255,255,255,0.08)',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.6)', padding: '4px 0', zIndex: 200,
+  borderRadius: '6px',
+};
+
+function MenuItem({ label, onClick, shortcut, disabled, closeMenu }: { label: string; onClick?: () => void; shortcut?: string; disabled?: boolean; closeMenu: () => void }) {
+  return (
+    <div
+      onClick={(e) => { if (onClick && !disabled) { e.stopPropagation(); onClick(); closeMenu(); } }}
+      style={{
+        padding: '6px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        cursor: disabled ? 'default' : 'pointer',
+        color: disabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.82)',
+        fontSize: '0.72rem', transition: 'background 0.1s',
+      }}
+      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = 'rgba(71,114,179,0.35)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+    >
+      <span>{label}</span>
+      {shortcut && <span style={{ color: 'rgba(255,255,255,0.3)', marginLeft: '24px', fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>{shortcut}</span>}
+    </div>
+  );
+}
+
+function Divider3D() { return <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)', margin: '3px 0' }} />; }
+
+function SubmenuItem({ label, items, id, closeMenu }: { label: string; items: { label: string; onClick: () => void }[]; id: string; closeMenu: () => void }) {
+  const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
+  return (
+    <div style={{ position: 'relative' }} onMouseEnter={() => setActiveSubmenu(id)} onMouseLeave={() => setActiveSubmenu(null)}>
+      <div style={{
+        padding: '6px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        cursor: 'pointer', color: 'rgba(255,255,255,0.82)', fontSize: '0.72rem',
+        background: activeSubmenu === id ? 'rgba(71,114,179,0.35)' : 'transparent',
+      }}>
+        <span>{label}</span>
+        <ChevronRight size={11} />
+      </div>
+      {activeSubmenu === id && (
+        <div style={{ ...dropdownStyle, position: 'absolute', left: 'calc(100% - 4px)', top: '-4px', minWidth: '150px' }}>
+          {items.map((item, idx) => (
+            <MenuItem key={idx} label={item.label} onClick={() => { item.onClick(); closeMenu(); }} closeMenu={closeMenu} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: string) => void; saveStatus?: string; title?: string }) {
   const { 
@@ -14,6 +65,7 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
 
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const menuBarRef = useRef<HTMLDivElement>(null);
+  const closeMenu = () => setActiveMenu(null);
 
   const objectCount = objects.filter(o => o.objectType === 'mesh').length;
   const lightCount = objects.filter(o => o.objectType === 'light').length;
@@ -40,54 +92,6 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
     userSelect: 'none',
   });
 
-  const dropdownStyle: React.CSSProperties = {
-    position: 'absolute', top: 'calc(100% + 2px)', left: 0, minWidth: '180px',
-    background: '#1e2026', border: '1px solid rgba(255,255,255,0.08)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.6)', padding: '4px 0', zIndex: 200,
-    borderRadius: '6px',
-  };
-
-  const MenuItem = ({ label, onClick, shortcut, disabled }: { label: string; onClick?: () => void; shortcut?: string; disabled?: boolean }) => (
-    <div
-      onClick={(e) => { if (onClick && !disabled) { e.stopPropagation(); onClick(); setActiveMenu(null); } }}
-      style={{
-        padding: '6px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        cursor: disabled ? 'default' : 'pointer',
-        color: disabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.82)',
-        fontSize: '0.72rem', transition: 'background 0.1s',
-      }}
-      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = 'rgba(71,114,179,0.35)'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-    >
-      <span>{label}</span>
-      {shortcut && <span style={{ color: 'rgba(255,255,255,0.3)', marginLeft: '24px', fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>{shortcut}</span>}
-    </div>
-  );
-
-  const Divider = () => <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)', margin: '3px 0' }} />;
-
-  const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
-  const SubmenuItem = ({ label, items, id }: { label: string; items: { label: string; onClick: () => void }[]; id: string }) => (
-    <div style={{ position: 'relative' }} onMouseEnter={() => setActiveSubmenu(id)} onMouseLeave={() => setActiveSubmenu(null)}>
-      <div style={{
-        padding: '6px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        cursor: 'pointer', color: 'rgba(255,255,255,0.82)', fontSize: '0.72rem',
-        background: activeSubmenu === id ? 'rgba(71,114,179,0.35)' : 'transparent',
-      }}>
-        <span>{label}</span>
-        <ChevronRight size={11} />
-      </div>
-      {activeSubmenu === id && (
-        <div style={{ ...dropdownStyle, position: 'absolute', left: 'calc(100% - 4px)', top: '-4px', minWidth: '150px' }}>
-          {items.map((item, idx) => (
-            <MenuItem key={idx} label={item.label} onClick={() => { item.onClick(); setActiveMenu(null); }} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  const isEditMode = selectionMode === 'edit';
   const canEditMode = selectedId && objects.find(o => o.id === selectedId)?.objectType === 'mesh';
 
   return (

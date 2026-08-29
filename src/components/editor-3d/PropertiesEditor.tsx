@@ -26,19 +26,19 @@ function ModifierItem({ objId, mod }: { objId: string, mod: Modifier }) {
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>Count</span>
-              <input type="number" value={mod.count} onChange={e => updateModifier(objId, mod.id, { count: Math.max(1, parseInt(e.target.value)||1) })} style={{ flex: 1, maxWidth: '80px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-primary)', padding: '4px 6px', borderRadius: '4px', fontSize: '0.72rem', outline: 'none' }} />
+              <input type="number" value={(mod as any).count} onChange={e => updateModifier(objId, mod.id, { count: Math.max(1, parseInt(e.target.value)||1) })} style={{ flex: 1, maxWidth: '80px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-primary)', padding: '4px 6px', borderRadius: '4px', fontSize: '0.72rem', outline: 'none' }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>Offset X</span>
-              <input type="number" step={0.1} value={mod.offsetX} onChange={e => updateModifier(objId, mod.id, { offsetX: parseFloat(e.target.value)||0 })} style={{ flex: 1, maxWidth: '80px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-primary)', padding: '4px 6px', borderRadius: '4px', fontSize: '0.72rem', outline: 'none' }} />
+              <input type="number" step={0.1} value={(mod as any).offsetX} onChange={e => updateModifier(objId, mod.id, { offsetX: parseFloat(e.target.value)||0 })} style={{ flex: 1, maxWidth: '80px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-primary)', padding: '4px 6px', borderRadius: '4px', fontSize: '0.72rem', outline: 'none' }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>Offset Y</span>
-              <input type="number" step={0.1} value={mod.offsetY} onChange={e => updateModifier(objId, mod.id, { offsetY: parseFloat(e.target.value)||0 })} style={{ flex: 1, maxWidth: '80px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-primary)', padding: '4px 6px', borderRadius: '4px', fontSize: '0.72rem', outline: 'none' }} />
+              <input type="number" step={0.1} value={(mod as any).offsetY} onChange={e => updateModifier(objId, mod.id, { offsetY: parseFloat(e.target.value)||0 })} style={{ flex: 1, maxWidth: '80px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-primary)', padding: '4px 6px', borderRadius: '4px', fontSize: '0.72rem', outline: 'none' }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>Offset Z</span>
-              <input type="number" step={0.1} value={mod.offsetZ} onChange={e => updateModifier(objId, mod.id, { offsetZ: parseFloat(e.target.value)||0 })} style={{ flex: 1, maxWidth: '80px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-primary)', padding: '4px 6px', borderRadius: '4px', fontSize: '0.72rem', outline: 'none' }} />
+              <input type="number" step={0.1} value={(mod as any).offsetZ} onChange={e => updateModifier(objId, mod.id, { offsetZ: parseFloat(e.target.value)||0 })} style={{ flex: 1, maxWidth: '80px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-primary)', padding: '4px 6px', borderRadius: '4px', fontSize: '0.72rem', outline: 'none' }} />
             </div>
           </>
         )}
@@ -49,7 +49,7 @@ function ModifierItem({ objId, mod }: { objId: string, mod: Modifier }) {
               <label key={axis} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
                 <input 
                   type="checkbox" 
-                  checked={(mod as any)[`mirror${axis}`]} 
+                  checked={(mod as Record<string, boolean>)[`mirror${axis}`]} 
                   onChange={e => updateModifier(objId, mod.id, { [`mirror${axis}`]: e.target.checked })}
                 />
                 {axis}
@@ -61,7 +61,7 @@ function ModifierItem({ objId, mod }: { objId: string, mod: Modifier }) {
         {mod.type === 'subdivision' && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>Levels</span>
-            <input type="number" min={1} max={6} value={mod.levels} onChange={e => updateModifier(objId, mod.id, { levels: Math.max(1, Math.min(6, parseInt(e.target.value)||1)) })} style={{ flex: 1, maxWidth: '80px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-primary)', padding: '4px 6px', borderRadius: '4px', fontSize: '0.72rem', outline: 'none' }} />
+            <input type="number" min={1} max={6} value={(mod as any).levels} onChange={e => updateModifier(objId, mod.id, { levels: Math.max(1, Math.min(6, parseInt(e.target.value)||1)) })} style={{ flex: 1, maxWidth: '80px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-primary)', padding: '4px 6px', borderRadius: '4px', fontSize: '0.72rem', outline: 'none' }} />
           </div>
         )}
 
@@ -70,20 +70,20 @@ function ModifierItem({ objId, mod }: { objId: string, mod: Modifier }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>Thickness</span>
               <input
-                type="number" step={0.01} value={mod.thickness?.toFixed(2) ?? '0.10'}
+                type="number" step={0.01} value={(mod as any).thickness?.toFixed(2) ?? '0.10'}
                 onChange={e => updateModifier(objId, mod.id, { thickness: parseFloat(e.target.value) || 0.1 })}
                 style={{ flex: 1, maxWidth: '80px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-primary)', padding: '4px 6px', borderRadius: '4px', fontSize: '0.72rem', outline: 'none' }}
               />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>Direction</span>
-              <span style={{ fontSize: '0.72rem', color: (mod.thickness ?? 0.1) >= 0 ? '#4a90e2' : '#e24a6a', fontWeight: 600 }}>
-                {(mod.thickness ?? 0.1) >= 0 ? '▲ Outward (Extrude)' : '▼ Inward (Inset)'}
+              <span style={{ fontSize: '0.72rem', color: ((mod as any).thickness ?? 0.1) >= 0 ? '#4a90e2' : '#e24a6a', fontWeight: 600 }}>
+                {((mod as any).thickness ?? 0.1) >= 0 ? '▲ Outward (Extrude)' : '▼ Inward (Inset)'}
               </span>
             </div>
             <input
               type="range" min="-1" max="1" step="0.01"
-              value={mod.thickness ?? 0.1}
+              value={(mod as any).thickness ?? 0.1}
               onChange={e => updateModifier(objId, mod.id, { thickness: parseFloat(e.target.value) })}
               style={{ width: '100%', accentColor: '#4a90e2' }}
             />
@@ -96,12 +96,12 @@ function ModifierItem({ objId, mod }: { objId: string, mod: Modifier }) {
 
 export function PropertiesEditor() {
   const { objects, selectedId, updateObject, addModifier } = useEditor3DStore();
+  const { postFX, setPostFX, updatePostFX, physicsEnabled, setPhysicsEnabled } = useEditor3DStore();
   const [activeTab, setActiveTab] = useState<'object' | 'modifiers' | 'material'>('object');
   
   const obj = objects.find(o => o.id === selectedId);
 
   if (!obj) {
-    const { postFX, setPostFX, updatePostFX, physicsEnabled, setPhysicsEnabled } = useEditor3DStore();
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
         <div style={{
@@ -230,7 +230,7 @@ export function PropertiesEditor() {
           <button
             key={tab.id}
             title={tab.title}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id as 'object' | 'modifiers' | 'material')}
             style={{
               flex: 1, padding: '7px 0', display: 'flex', flexDirection: 'column',
               alignItems: 'center', gap: '2px',
@@ -302,7 +302,7 @@ export function PropertiesEditor() {
                 ] as const).map((mod, idx) => (
                   <button
                     key={idx}
-                    onClick={() => addModifier(obj.id, mod.key as any, mod.extra)}
+                    onClick={() => addModifier(obj.id, mod.key, mod.extra as Partial<Modifier>)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '4px',
                       padding: '4px 8px',
