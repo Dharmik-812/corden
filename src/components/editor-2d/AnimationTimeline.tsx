@@ -20,7 +20,7 @@ function FrameThumb({ layers, canvasWidth, canvasHeight, isActive, frameNum, onC
       style={{
         flexShrink: 0, cursor: "pointer",
         borderRadius: "8px",
-        border: `2px solid ${isActive ? "#4772b3" : "rgba(255,255,255,0.08)"}`,
+        border: `2px solid ${isActive ? "var(--accent-primary, #4772b3)" : "rgba(255,255,255,0.08)"}`,
         overflow: "hidden", position: "relative",
         background: isActive ? "rgba(71,114,179,0.08)" : "#13141a",
         transition: "all 0.15s",
@@ -46,9 +46,9 @@ function FrameThumb({ layers, canvasWidth, canvasHeight, isActive, frameNum, onC
       {/* Frame number badge */}
       <div style={{
         position: "absolute", top: "3px", left: "4px",
-        fontSize: "0.5rem", fontWeight: 700, color: isActive ? "#8bb8ff" : "rgba(255,255,255,0.3)",
+        fontSize: "0.5rem", fontWeight: 700, color: isActive ? "#559BFF" : "rgba(255,255,255,0.3)",
         fontFamily: "var(--font-mono)", lineHeight: 1,
-        textShadow: "0 1px 3px rgba(0,0,0,0.8)",
+        textShadow: isActive ? "0 1px 3px rgba(0,0,0,0.8)" : "none",
       }}>
         {frameNum}
       </div>
@@ -57,7 +57,7 @@ function FrameThumb({ layers, canvasWidth, canvasHeight, isActive, frameNum, onC
       {isActive && (
         <div style={{
           position: "absolute", bottom: 0, left: 0, right: 0,
-          height: "3px", background: "linear-gradient(90deg, #4772b3, #8bb8ff)",
+          height: "3px", background: "linear-gradient(90deg, var(--accent-primary, #4772b3), #559BFF)",
         }} />
       )}
     </div>
@@ -95,17 +95,24 @@ export function AnimationTimeline() {
     setShowExportMenu(false);
     try {
       const { default: GIF } = await import("gif.js");
-      const { canvasWidth, canvasHeight } = usePixelEditorStore.getState();
+      const { canvasWidth, canvasHeight, activeFrameIndex, layers } = usePixelEditorStore.getState();
+      const exportFrames = frames.map((f, i) => i === activeFrameIndex ? { ...f, layers } : f);
+      
       const gif = new GIF({
         workers: 2, quality: 10,
         width: canvasWidth * scale, height: canvasHeight * scale,
         workerScript: "/gif.worker.js",
+        transparent: 0xFF00FF // Magenta as chroma key for transparency
       });
-      for (const frame of frames) {
+      for (const frame of exportFrames) {
         const off = document.createElement("canvas");
         off.width = canvasWidth * scale; off.height = canvasHeight * scale;
         const ctx = off.getContext("2d")!;
-        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, off.width, off.height);
+        
+        // Fill canvas with magenta to act as our transparent background
+        ctx.fillStyle = "#FF00FF"; 
+        ctx.fillRect(0, 0, off.width, off.height);
+        
         for (const layer of frame.layers) {
           if (!layer.visible) continue;
           ctx.globalAlpha = layer.opacity;

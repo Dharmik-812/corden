@@ -13,9 +13,8 @@ interface LightObjectProps {
 
 export function LightObjects() {
   const { objects, selectedId, transformMode, updateObject, shadingMode } = useEditor3DStore();
-  const lights = objects.filter(o => o.objectType === 'light');
+  const lights = objects.filter(o => o.objectType === 'light' && !o.hidden);
 
-  // We only show helper gizmos if we are not in rendered mode, or if selected
   const showGizmos = shadingMode !== 'rendered';
 
   return (
@@ -50,11 +49,11 @@ function LightObject({ light, showGizmos, selectedId, transformMode, updateObjec
     return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); };
   }, []);
 
-  const color = new THREE.Color(light.lightColor);
+  const color = new THREE.Color(light.lightColor || '#ffffff');
 
   return (
     <>
-      <group 
+      <group
         ref={groupRef}
         position={light.position}
         rotation={light.rotation}
@@ -64,68 +63,73 @@ function LightObject({ light, showGizmos, selectedId, transformMode, updateObjec
       >
         {/* The actual light */}
         {light.lightType === 'point' && (
-          <pointLight 
-            color={color} 
-            intensity={light.lightIntensity} 
-            distance={light.lightDistance} 
-            castShadow 
+          <pointLight
+            color={color}
+            intensity={light.lightIntensity}
+            distance={light.lightDistance}
+            castShadow
           />
         )}
         {light.lightType === 'sun' && (
-          <directionalLight 
-            color={color} 
-            intensity={light.lightIntensity} 
-            castShadow 
-            shadow-mapSize={[2048, 2048]} 
+          <directionalLight
+            color={color}
+            intensity={light.lightIntensity}
+            castShadow
+            shadow-mapSize={[2048, 2048]}
           />
         )}
         {light.lightType === 'spot' && (
-          <spotLight 
-            color={color} 
-            intensity={light.lightIntensity} 
-            distance={light.lightDistance} 
-            angle={light.lightAngle} 
-            penumbra={light.lightPenumbra} 
-            castShadow 
+          <spotLight
+            color={color}
+            intensity={light.lightIntensity}
+            distance={light.lightDistance}
+            angle={light.lightAngle}
+            penumbra={light.lightPenumbra}
+            castShadow
           />
         )}
         {light.lightType === 'area' && (
-          <rectAreaLight 
-            color={color} 
-            intensity={light.lightIntensity} 
-            width={light.scale[0]} 
-            height={light.scale[1]} 
+          <rectAreaLight
+            color={color}
+            intensity={light.lightIntensity}
+            width={light.scale[0]}
+            height={light.scale[1]}
           />
         )}
 
-        {/* The helper gizmo (always rendered but visible depends on mode/selection) */}
+        {/* The helper gizmo */}
         {(showGizmos || isSelected) && (
-          <mesh>
-            {light.lightType === 'sun' ? (
-              <sphereGeometry args={[0.2, 16, 16]} />
-            ) : light.lightType === 'spot' ? (
-              <coneGeometry args={[0.2, 0.4, 16]} />
-            ) : light.lightType === 'area' ? (
-              <planeGeometry args={[1, 1]} />
-            ) : (
-              <octahedronGeometry args={[0.15, 0]} />
-            )}
-            <meshBasicMaterial color={isSelected ? "#ffaa00" : light.lightColor} wireframe={!isSelected} />
-            
-            {/* Draw a dashed line pointing down for sun/spot to show direction */}
+          <group>
+            <mesh>
+              {light.lightType === 'sun' ? (
+                <sphereGeometry args={[0.2, 16, 16]} />
+              ) : light.lightType === 'spot' ? (
+                <coneGeometry args={[0.2, 0.4, 16]} />
+              ) : light.lightType === 'area' ? (
+                <planeGeometry args={[1, 1]} />
+              ) : (
+                <octahedronGeometry args={[0.15, 0]} />
+              )}
+              <meshBasicMaterial color={isSelected ? "#ffaa00" : light.lightColor || '#ffffff'} wireframe={!isSelected} />
+            </mesh>
+
+            {/* FIX: lineSegments moved outside <mesh> — lineSegments must be a sibling, not a child of mesh */}
             {(light.lightType === 'sun' || light.lightType === 'spot') && (
               <lineSegments>
                 <lineBasicMaterial color={isSelected ? "#ffaa00" : "#aaaaaa"} />
-                <bufferGeometry attach="geometry" {...new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,-2)])} />
+                <bufferGeometry attach="geometry" {...new THREE.BufferGeometry().setFromPoints([
+                  new THREE.Vector3(0, 0, 0),
+                  new THREE.Vector3(0, 0, -2)
+                ])} />
               </lineSegments>
             )}
-          </mesh>
+          </group>
         )}
       </group>
 
       {/* Transform controls if selected */}
       {target && (
-        <TransformControls 
+        <TransformControls
           object={target}
           mode={transformMode}
           translationSnap={snap ? 1 : null}

@@ -83,13 +83,12 @@ export function SceneOutliner() {
   const filtered = objects.filter(o => o.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: 0, border: 'none', background: 'transparent' }}>
       
       {/* Header */}
-      <div style={{
+      <div className="panel-header" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 12px 8px',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
       }}>
         <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.65)' }}>
           Outliner

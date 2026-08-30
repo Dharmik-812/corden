@@ -125,7 +125,7 @@ export default function SignUpPage() {
       </div>
 
       <div className="auth-footer auth-footer--modern">
-        <Link href="/signup" className="auth-secondary-link">
+        <Link href="/login" className="auth-secondary-link">
           Sign in instead
         </Link>
       </div>

@@ -19,19 +19,12 @@ const NAV_ITEMS = [
   { href: "/pricing", label: "Pricing", icon: CreditCard },
 ];
 
-function NavLink({ href, children, active }: { href: string; children: React.ReactNode; active?: boolean }) {
-  return (
-    <Link href={href} className={`site-nav-link${active ? " site-nav-link--active" : ""}`}>
-      {children}
-    </Link>
-  );
-}
-
 export function SiteHeader({ variant: variantProp }: SiteHeaderProps) {
   const pathname = usePathname();
   const { user, hydrate, signOut } = useAuthStore();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [hoveredPath, setHoveredPath] = useState<string | null>(null);
 
   const variant: SiteHeaderVariant =
     variantProp ??
@@ -42,7 +35,7 @@ export function SiteHeader({ variant: variantProp }: SiteHeaderProps) {
   }, [hydrate]);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -59,81 +52,82 @@ export function SiteHeader({ variant: variantProp }: SiteHeaderProps) {
 
   const isMarketing = variant === "marketing";
   const isDashboard = variant === "dashboard";
-  const showNav = (isMarketing || variant === "app");
+  const showNav = isMarketing || variant === "app";
 
   return (
     <>
-      <motion.header
-        initial={isMarketing ? { y: -16, opacity: 0 } : false}
-        animate={isMarketing ? { y: 0, opacity: 1 } : undefined}
-        transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-        className={`site-header${scrolled ? " site-header--scrolled" : ""}`}
-      >
-        <div className="site-header-inner">
-          <div className="site-header-brand">
-            <Link href="/" className="site-header-logo">
-              <Logo size={isDashboard ? 24 : 28} />
+      <div className={`site-header-wrapper ${isMarketing ? 'site-header-wrapper--floating' : 'site-header-wrapper--full'}`}>
+        <motion.header
+          initial={isMarketing ? { y: -40, opacity: 0 } : false}
+          animate={isMarketing ? { y: 0, opacity: 1 } : undefined}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className={`site-header-new ${scrolled ? "site-header-new--scrolled" : ""}`}
+        >
+          <div className="site-header-left">
+            <Link href="/" className="site-logo-link">
+              <Logo size={24} />
             </Link>
             {isDashboard && (
-              <>
+              <div className="site-header-badge-wrap">
                 <span className="site-header-divider" />
                 <span className="site-header-badge">Studio</span>
-              </>
+              </div>
             )}
           </div>
 
-          {showNav && (
-            <nav className="site-header-nav" aria-label="Main">
-              {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
-                <NavLink key={href} href={href} active={pathname === href}>
-                  <Icon size={14} />
-                  {label}
-                </NavLink>
-              ))}
+          {showNav ? (
+            <nav className="site-header-center" onMouseLeave={() => setHoveredPath(null)}>
+              {NAV_ITEMS.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`site-nav-item ${isActive ? "site-nav-item--active" : ""}`}
+                    onMouseEnter={() => setHoveredPath(item.href)}
+                  >
+                    <span style={{ position: 'relative', zIndex: 2 }}>{item.label}</span>
+                    {item.href === hoveredPath && (
+                      <motion.div
+                        className="site-nav-hover-pill"
+                        layoutId="navHoverPill"
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                  </Link>
+                );
+              })}
             </nav>
+          ) : (
+            <div />
           )}
 
-          <div className="site-header-actions">
-            {isDashboard && (
-              <div className="site-header-editor-pills">
-                <Link href="/editor/2d/new" className="site-pill site-pill--2d">
-                  <PencilRuler size={14} />
-                  <span className="site-pill-label">New 2D</span>
-                </Link>
-                <Link href="/editor/3d/new" className="site-pill site-pill--3d">
-                  <Box size={14} />
-                  <span className="site-pill-label">New 3D</span>
-                </Link>
-              </div>
-            )}
+          <div className="site-header-right">
+
 
             {user ? (
-              <div className="site-header-user">
-                <Link href="/profile" className="site-user-chip">
-                  <span className="site-user-avatar">{user.display_name.charAt(0).toUpperCase()}</span>
-                  <span className="site-user-name">{user.display_name}</span>
-                  {user.membership_tier === "pro" && (
-                    <span className="site-pro-badge">Pro</span>
-                  )}
+              <div className="site-user-menu">
+                <Link href="/profile" className="site-user-avatar-btn">
+                  {user.display_name.charAt(0).toUpperCase()}
                 </Link>
-                <button type="button" className="site-logout-btn" onClick={signOut} title="Log out">
-                  <LogOut size={15} />
+                <button type="button" className="site-logout-icon-btn" onClick={signOut} title="Log out">
+                  <LogOut size={16} />
                 </button>
               </div>
             ) : (
-              <>
-                <Link href="/login" className="site-login-link">Log in</Link>
-                <Link href={isMarketing ? "/dashboard" : "/signup"} className="site-cta-btn">
+              <div className="site-auth-group">
+                <Link href="/login" className="site-link-btn">Log in</Link>
+                <Link href={isMarketing ? "/dashboard" : "/signup"} className="site-primary-btn">
                   {isMarketing ? "Get Started" : "Sign up"}
-                  <ArrowRight size={15} />
+                  <ArrowRight size={14} />
                 </Link>
-              </>
+              </div>
             )}
 
             {showNav && (
               <button
                 type="button"
-                className="site-mobile-toggle"
+                className="site-mobile-toggle site-mobile-toggle-new"
                 onClick={() => setMobileOpen((v) => !v)}
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
               >
@@ -141,8 +135,8 @@ export function SiteHeader({ variant: variantProp }: SiteHeaderProps) {
               </button>
             )}
           </div>
-        </div>
-      </motion.header>
+        </motion.header>
+      </div>
 
       {showNav && (
         <AnimatePresence>
@@ -165,7 +159,7 @@ export function SiteHeader({ variant: variantProp }: SiteHeaderProps) {
                   <Link
                     key={href}
                     href={href}
-                    className={`site-mobile-link${pathname === href ? " site-mobile-link--active" : ""}`}
+                    className={`site-mobile-link ${pathname === href ? "site-mobile-link--active" : ""}`}
                   >
                     <Icon size={18} />
                     {label}

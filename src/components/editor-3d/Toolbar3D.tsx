@@ -21,7 +21,7 @@ function ToolbarButton({ icon, label, shortcut, active, onClick, accentColor = '
   const [hovered, setHovered] = useState(false);
   const isActive = active || hovered;
   return (
-    <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+    <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
       <button
         onClick={onClick}
         onMouseEnter={() => setHovered(true)}
@@ -30,10 +30,11 @@ function ToolbarButton({ icon, label, shortcut, active, onClick, accentColor = '
         style={{
           width: '36px', height: '34px', borderRadius: '6px', border: 'none', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: active ? `${accentColor}33` : hovered ? 'rgba(255,255,255,0.07)' : 'transparent',
+          background: active ? `${accentColor}44` : hovered ? 'rgba(255,255,255,0.07)' : 'transparent',
           color: active ? accentColor : hovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)',
           transition: 'all 0.12s',
-          outline: active ? `1px solid ${accentColor}55` : 'none',
+          outline: 'none',
+          boxShadow: active ? `inset 0 0 0 1px ${accentColor}66` : 'none',
         }}
       >
         {icon}
@@ -58,14 +59,14 @@ function ToolbarButton({ icon, label, shortcut, active, onClick, accentColor = '
 }
 
 function Divider() {
-  return <div style={{ width: '26px', height: '1px', background: 'rgba(255,255,255,0.06)', margin: '3px 0', flexShrink: 0 }} />;
+  return <div className="toolbar3d-divider" style={{ width: '26px', height: '1px', background: 'rgba(255,255,255,0.06)', margin: '3px 0', flexShrink: 0 }} />;
 }
 
 function SectionLabel({ label }: { label: string }) {
   return (
     <span style={{
-      fontSize: '0.52rem', fontWeight: 700, letterSpacing: '0.08em',
-      textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)',
+      fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.08em',
+      textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)',
       marginTop: '6px', marginBottom: '1px', userSelect: 'none',
     }}>
       {label}
@@ -90,7 +91,7 @@ export function Toolbar3D() {
 
   if (selectionMode === 'edit') {
     return (
-      <div style={{
+      <div className="toolbar3d-wrapper" style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         gap: '2px', width: '100%', padding: '8px 6px',
       }}>
@@ -132,7 +133,7 @@ export function Toolbar3D() {
   }
 
   return (
-    <div style={{
+    <div className="toolbar3d-wrapper" style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       gap: '2px', width: '100%', padding: '8px 6px',
     }}>

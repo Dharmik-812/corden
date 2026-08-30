@@ -67,7 +67,7 @@ function CameraObject({ obj }: { obj: SceneObject }) {
       </group>
 
       {target && !isActiveView && (
-        <TransformControls 
+        <TransformControls
           object={target}
           mode={transformMode}
           translationSnap={snap ? 1 : null}
@@ -147,6 +147,17 @@ function ObjectMesh({ obj }: { obj: SceneObject }) {
     return base;
   }, [obj.type, obj.modifiers]);
 
+  // Edges geometry with proper disposal to prevent memory leaks
+  const edgesGeometry = useMemo(() => {
+    return new THREE.EdgesGeometry(geometry);
+  }, [geometry]);
+
+  useEffect(() => {
+    return () => {
+      edgesGeometry.dispose();
+    };
+  }, [edgesGeometry]);
+
   const [snap, setSnap] = useState(false);
 
   useEffect(() => {
@@ -202,23 +213,22 @@ function ObjectMesh({ obj }: { obj: SceneObject }) {
         onClick={(e) => { e.stopPropagation(); setSelectedId(obj.id); }}
       >
         {instances.map((inst, i) => (
-          <mesh 
-            key={i} 
-            geometry={geometry} 
-            position={inst.position} 
+          <mesh
+            key={i}
+            geometry={geometry}
+            position={inst.position}
             scale={inst.scale}
-            castShadow 
-            receiveShadow 
+            castShadow
+            receiveShadow
           >
             <Suspense fallback={<meshBasicMaterial color={obj.color} />}>
               <TexturedMaterial obj={obj} isSelected={isSelected && i===0} shadingMode={shadingMode} />
             </Suspense>
           </mesh>
         ))}
-        {/* Selection outline in solid/material mode */}
+        {/* Selection outline — rendered as sibling lineSegments (correct hierarchy) */}
         {isSelected && shadingMode !== 'wireframe' && (
-          <lineSegments>
-            <edgesGeometry args={[geometry]} />
+          <lineSegments geometry={edgesGeometry}>
             <lineBasicMaterial color="#ffaa00" linewidth={2} depthTest={false} />
           </lineSegments>
         )}
@@ -239,19 +249,21 @@ function ObjectMesh({ obj }: { obj: SceneObject }) {
 
   const [target, setTarget] = useState<THREE.Group | null>(null);
 
+  // FIX: Removed shadingMode from deps — it caused TransformControls to unmount/remount on every shading change
   useEffect(() => {
     if (isSelected && meshRef.current) {
       setTarget(meshRef.current);
     } else {
       setTarget(null);
     }
-  }, [isSelected, obj.type, shadingMode]);
+  }, [isSelected, obj.type]);
 
   return (
     <>
       {renderInstances()}
+      {/* FIX: Don't attach TransformControls in physics mode — position sync breaks */}
       {target && !physicsEnabled && (
-        <TransformControls 
+        <TransformControls
           object={target}
           mode={transformMode}
           translationSnap={snap ? 1 : null}
@@ -274,14 +286,16 @@ function ObjectMesh({ obj }: { obj: SceneObject }) {
 
 export function SceneObjects() {
   const { objects, setSelectedId } = useEditor3DStore();
-  
+  // FIX: Use reactive hook instead of getState() so this re-renders when physicsEnabled changes
+  const physicsEnabled = useEditor3DStore(s => s.physicsEnabled);
+
   const meshes = objects.filter(o => o.objectType === 'mesh' && o.visible && !o.hidden);
   const cameras = objects.filter(o => o.objectType === 'camera' && o.visible && !o.hidden);
 
   return (
     <group onPointerMissed={() => setSelectedId(null)}>
       {/* Invisible floor for physics so things don't fall forever if there's no ground plane */}
-      {useEditor3DStore.getState().physicsEnabled && (
+      {physicsEnabled && (
         <RigidBody type="fixed" position={[0, -0.5, 0]}>
           <mesh visible={false}>
             <boxGeometry args={[100, 1, 100]} />

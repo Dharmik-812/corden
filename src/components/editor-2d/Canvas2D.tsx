@@ -31,7 +31,7 @@ export function Canvas2D() {
     // Grid rendering is handled by CSS background in globals.css for performance
     // but we need to handle window resize and layout changes
     const resizeObserver = new ResizeObserver((entries) => {
-      for (let entry of entries) {
+      for (const entry of entries) {
         if (entry.target === wrapperRef.current) {
           canvas.setWidth(entry.contentRect.width);
           canvas.setHeight(entry.contentRect.height);

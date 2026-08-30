@@ -16,6 +16,7 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => void;
   upgradeToPro: () => void;
+  updateProfile: (data: { display_name?: string; email?: string }) => { error?: string };
   hydrate: () => void;
 }
 
@@ -109,5 +110,38 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       saveUsers(users);
     }
     set({ user: upgraded });
+  },
+
+  updateProfile: (data) => {
+    const { user } = get();
+    if (!user) return { error: "Not logged in" };
+
+    const users = getStoredUsers();
+    
+    // If email is changing, check if new email exists
+    if (data.email && data.email !== user.email && users[data.email]) {
+      return { error: "Email already in use." };
+    }
+
+    const updatedUser = { ...user, ...data };
+    const oldEmail = user.email;
+
+    // Update session
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+    
+    // Update users store
+    if (users[oldEmail]) {
+      const entry = users[oldEmail];
+      entry.user = updatedUser;
+      
+      if (data.email && data.email !== oldEmail) {
+        users[data.email] = entry;
+        delete users[oldEmail];
+      }
+      saveUsers(users);
+    }
+
+    set({ user: updatedUser });
+    return {};
   },
 }));

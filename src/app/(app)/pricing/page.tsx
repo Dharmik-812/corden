@@ -3,11 +3,13 @@
 import { useAuthStore } from "@/stores/auth-store";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Check, Sparkles, Zap, Crown, ArrowRight, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Check, Sparkles, Zap, Crown, ArrowRight, Loader2, ChevronDown } from "lucide-react";
 import Link from "next/link";
 
-const PLANS = [
+import { Star } from "lucide-react";
+
+const getPlans = (billing: "monthly" | "annual") => [
   {
     id: "free",
     badge: "Free",
@@ -29,11 +31,15 @@ const PLANS = [
   },
   {
     id: "pro",
-    badge: "Pro",
+    badge: (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+        <Star size={12} fill="currentColor" /> Most Popular
+      </span>
+    ),
     badgeClass: "pricing-badge pricing-badge--pro",
     name: "Master Draftsman",
-    price: "$12",
-    period: "/month",
+    price: billing === "monthly" ? "$12" : "$9",
+    period: billing === "monthly" ? "/month" : "/mo, billed annually",
     desc: "For makers who ship professional work from the browser.",
     features: [
       "Everything in Apprentice",
@@ -53,11 +59,62 @@ const FAQ = [
   { q: "Can I cancel Pro anytime?", a: "This is a demo checkout — upgrading activates Pro instantly with no payment." },
 ];
 
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{
+      borderRadius: "14px",
+      background: "rgba(255,255,255,0.02)",
+      border: open ? "1px solid rgba(71,114,179,0.3)" : "1px solid rgba(255,255,255,0.07)",
+      overflow: "hidden",
+      transition: "border-color 0.2s",
+    }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width: "100%", textAlign: "left", background: "none", border: "none",
+          cursor: "pointer", padding: "1.125rem 1.5rem",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px",
+        }}
+      >
+        <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "#fff" }}>{q}</span>
+        <motion.span
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          style={{ display: "flex", flexShrink: 0, color: "rgba(255,255,255,0.4)" }}
+        >
+          <ChevronDown size={16} />
+        </motion.span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="content"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            style={{ overflow: "hidden" }}
+          >
+            <p style={{
+              margin: 0, padding: "0 1.5rem 1.125rem",
+              fontSize: "0.8125rem", color: "rgba(255,255,255,0.58)", lineHeight: 1.65,
+            }}>
+              {a}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function PricingPage() {
   const { user, upgradeToPro } = useAuthStore();
   const router = useRouter();
   const [upgrading, setUpgrading] = useState(false);
   const [upgraded, setUpgraded] = useState(false);
+  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
 
   const isPro = user?.membership_tier === "pro";
 
@@ -96,6 +153,32 @@ export default function PricingPage() {
           <p className="page-desc">
             No install, no lock-in. Draft in 2D and 3D from any modern browser.
           </p>
+
+          {/* Billing toggle placeholder */}
+          <div style={{
+            display: "inline-flex", marginTop: "1.5rem",
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: "999px", padding: "4px", gap: "2px",
+          }}>
+            {(["monthly", "annual"] as const).map(b => (
+              <button
+                key={b}
+                onClick={() => setBilling(b)}
+                style={{
+                  padding: "7px 20px", borderRadius: "999px", border: "none", cursor: "pointer",
+                  fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.03em",
+                  transition: "all 0.2s",
+                  background: billing === b ? "rgba(71,114,179,0.25)" : "transparent",
+                  color: billing === b ? "#fff" : "rgba(255,255,255,0.45)",
+                  boxShadow: billing === b ? "inset 0 0 0 1px rgba(71,114,179,0.4)" : "none",
+                }}
+              >
+                {b.charAt(0).toUpperCase() + b.slice(1)}
+                {b === "annual" && <span style={{ marginLeft: 6, fontSize: "0.65rem", color: "#34d399", fontWeight: 700 }}>–20%</span>}
+              </button>
+            ))}
+          </div>
         </motion.header>
 
         <motion.div
@@ -107,10 +190,11 @@ export default function PricingPage() {
             visible: { opacity: 1, transition: { staggerChildren: 0.12 } },
           }}
         >
-          {PLANS.map((plan) => (
+          {getPlans(billing).map((plan) => (
             <motion.article
               key={plan.id}
               className={`pricing-card-premium${plan.featured ? " pricing-card-premium--featured" : ""}`}
+              style={plan.featured ? { transform: "scale(1.025)", transformOrigin: "bottom center" } : undefined}
               variants={{
                 hidden: { opacity: 0, y: 28 },
                 visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 260, damping: 24 } },
@@ -179,12 +263,9 @@ export default function PricingPage() {
           transition={{ delay: 0.35, duration: 0.6 }}
         >
           <h3>Frequently asked</h3>
-          <div className="pricing-faq-grid">
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {FAQ.map((item) => (
-              <div key={item.q} className="pricing-faq-item">
-                <strong>{item.q}</strong>
-                <p>{item.a}</p>
-              </div>
+              <FaqItem key={item.q} q={item.q} a={item.a} />
             ))}
           </div>
         </motion.section>

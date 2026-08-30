@@ -114,15 +114,16 @@ export function TopMenuBar2D({ onSave, saveStatus, title }: { onSave?: (title?: 
   const isSaving = saveStatus === "saving";
 
   return (
-    <div ref={menuBarRef} style={{
+    <div ref={menuBarRef} className="editor-top-menubar" style={{
       position: "relative", zIndex: 100,
       display: "flex", alignItems: "center", height: "38px",
-      background: "rgba(10,11,16,0.97)",
+      background: "rgba(10, 12, 18, 0.95)",
       backdropFilter: "blur(24px)",
-      borderBottom: "1px solid rgba(255,255,255,0.06)",
+      borderBottom: "1px solid var(--border-primary)",
       padding: "0 10px", gap: "2px",
       fontFamily: "var(--font-sans)", userSelect: "none",
-      flexShrink: 0,
+      flexShrink: 0, overflowX: "auto",
+      scrollbarWidth: "none",
     }}>
 
       {/* Logo */}

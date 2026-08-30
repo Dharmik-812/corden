@@ -89,23 +89,38 @@ function ToolButton({ icon, label, shortcut, active, danger, onClick }: ToolButt
   const [hov, setHov] = useState(false);
 
   return (
-    <button
-      title={shortcut ? `${label} (${shortcut})` : label}
-      onClick={onClick}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      className={styles.toolBtn}
-      style={{
-        background: active
-          ? "linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-brass) 100%)"
-          : hov ? "rgba(255,255,255,0.08)" : "transparent",
-        color: active ? "#fff" : danger && hov ? "#ff6b6b" : "var(--text-secondary)",
-        boxShadow: active ? "0 4px 16px rgba(74,144,226,0.4)" : "none",
-        transform: active ? "scale(1)" : hov ? "scale(1.05)" : "scale(1)",
-      }}
-    >
-      {icon}
-    </button>
+    <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
+      <button
+        onClick={onClick}
+        onMouseEnter={() => setHov(true)}
+        onMouseLeave={() => setHov(false)}
+        className={styles.toolBtn}
+        style={{
+          background: active
+            ? "linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-brass) 100%)"
+            : hov ? "rgba(255,255,255,0.08)" : "transparent",
+          color: active ? "#fff" : danger && hov ? "#ff6b6b" : "var(--text-secondary)",
+          boxShadow: active ? "0 4px 16px rgba(74,144,226,0.4)" : "none",
+          transform: active ? "scale(1)" : hov ? "scale(1.05)" : "scale(1)",
+        }}
+      >
+        {icon}
+      </button>
+      {hov && (
+        <div style={{
+          position: 'absolute', left: 'calc(100% + 14px)', top: '50%', transform: 'translateY(-50%)',
+          background: '#0f1115', border: '1px solid rgba(255,255,255,0.1)',
+          color: '#fff', padding: '5px 10px', borderRadius: '6px',
+          fontSize: '0.68rem', whiteSpace: 'nowrap', zIndex: 200,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+          display: 'flex', flexDirection: 'column', gap: '1px',
+          pointerEvents: 'none',
+        }}>
+          <span style={{ fontWeight: 600 }}>{label}</span>
+          {shortcut && <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.62rem', fontFamily: 'var(--font-mono)' }}>{shortcut}</span>}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -275,18 +290,39 @@ export function PixelToolbar({ onSave }: { onSave?: () => void }) {
       <div className={styles.panelGroup}>
         {/* Canvas Size */}
         <div style={{ position: "relative" }}>
-          <button
-            title="Canvas Size"
-            onClick={() => { setShowSizeMenu(v => !v); setShowShapeMenu(false); setShowSymmetryMenu(false); setShowExportMenu(false); }}
-            className={styles.toolBtnText}
-            style={{
-              background: showSizeMenu ? "rgba(255,255,255,0.1)" : "transparent",
-              color: "var(--text-secondary)", gap: "1px",
-            }}
-          >
-            <span style={{ fontSize: "0.55rem", lineHeight: 1, fontFamily: "var(--font-mono)", fontWeight: 700 }}>{canvasWidth}</span>
-            <span style={{ fontSize: "0.42rem", color: "var(--text-tertiary)", lineHeight: 1, fontFamily: "var(--font-mono)" }}>PX</span>
-          </button>
+          <div style={{ position: "relative", display: "flex", justifyContent: "center" }}
+               onMouseEnter={() => {
+                 const el = document.getElementById('canvas-size-tooltip');
+                 if (el) el.style.display = 'flex';
+               }}
+               onMouseLeave={() => {
+                 const el = document.getElementById('canvas-size-tooltip');
+                 if (el) el.style.display = 'none';
+               }}>
+            <button
+              onClick={() => { setShowSizeMenu(v => !v); setShowShapeMenu(false); setShowSymmetryMenu(false); setShowExportMenu(false); }}
+              className={styles.toolBtnText}
+              style={{
+                background: showSizeMenu ? "rgba(255,255,255,0.1)" : "transparent",
+                color: "var(--text-secondary)", gap: "1px",
+              }}
+            >
+              <span style={{ fontSize: "0.55rem", lineHeight: 1, fontFamily: "var(--font-mono)", fontWeight: 700 }}>{canvasWidth}</span>
+              <span style={{ fontSize: "0.42rem", color: "var(--text-tertiary)", lineHeight: 1, fontFamily: "var(--font-mono)" }}>PX</span>
+            </button>
+            <div id="canvas-size-tooltip" style={{
+              display: 'none',
+              position: 'absolute', left: 'calc(100% + 14px)', top: '50%', transform: 'translateY(-50%)',
+              background: '#0f1115', border: '1px solid rgba(255,255,255,0.1)',
+              color: '#fff', padding: '5px 10px', borderRadius: '6px',
+              fontSize: '0.68rem', whiteSpace: 'nowrap', zIndex: 200,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+              flexDirection: 'column', gap: '1px',
+              pointerEvents: 'none',
+            }}>
+              <span style={{ fontWeight: 600 }}>Canvas Size</span>
+            </div>
+          </div>
           {showSizeMenu && (
             <div style={dropdownStyle}>
               <div style={dropdownTitleStyle}>Canvas Size</div>
@@ -320,8 +356,16 @@ export function PixelToolbar({ onSave }: { onSave?: () => void }) {
 
         {/* Export PNG */}
         <div style={{ position: "relative" }}>
+        <div style={{ position: "relative", display: "flex", justifyContent: "center" }}
+             onMouseEnter={() => {
+               const el = document.getElementById('export-png-tooltip');
+               if (el) el.style.display = 'flex';
+             }}
+             onMouseLeave={() => {
+               const el = document.getElementById('export-png-tooltip');
+               if (el) el.style.display = 'none';
+             }}>
           <button
-            title="Export PNG"
             onClick={() => { setShowExportMenu(v => !v); setShowShapeMenu(false); setShowSymmetryMenu(false); setShowSizeMenu(false); }}
             className={styles.toolBtnText}
             style={{
@@ -334,6 +378,19 @@ export function PixelToolbar({ onSave }: { onSave?: () => void }) {
             <Download size={15} strokeWidth={1.5} />
             <ChevronDown size={8} strokeWidth={2} style={{ opacity: 0.45 }} />
           </button>
+          <div id="export-png-tooltip" style={{
+            display: 'none',
+            position: 'absolute', left: 'calc(100% + 14px)', top: '50%', transform: 'translateY(-50%)',
+            background: '#0f1115', border: '1px solid rgba(255,255,255,0.1)',
+            color: '#fff', padding: '5px 10px', borderRadius: '6px',
+            fontSize: '0.68rem', whiteSpace: 'nowrap', zIndex: 200,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+            flexDirection: 'column', gap: '1px',
+            pointerEvents: 'none',
+          }}>
+            <span style={{ fontWeight: 600 }}>Export PNG</span>
+          </div>
+        </div>
           {showExportMenu && (
             <div style={{ ...dropdownStyle, minWidth: "210px", bottom: 0, top: "auto" }}>
               <div style={dropdownTitleStyle}>Export PNG</div>

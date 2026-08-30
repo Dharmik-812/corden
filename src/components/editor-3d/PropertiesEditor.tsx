@@ -1,8 +1,8 @@
 "use client";
 
 import { useEditor3DStore, Modifier } from "@/stores/editor3d-store";
-import { Box, Wrench, Image as ImageIcon, Zap, Camera, Plus, X } from "lucide-react";
-import { useState } from "react";
+import { Box, Wrench, Image as ImageIcon, Zap, Camera, Plus, X, Move, RotateCw, Scaling } from "lucide-react";
+import { useState, useEffect } from "react";
 
 function ModifierItem({ objId, mod }: { objId: string, mod: Modifier }) {
   const { updateModifier, removeModifier, toggleModifier } = useEditor3DStore();
@@ -42,14 +42,14 @@ function ModifierItem({ objId, mod }: { objId: string, mod: Modifier }) {
             </div>
           </>
         )}
-        
+
         {mod.type === 'mirror' && (
           <div style={{ display: 'flex', gap: '8px' }}>
             {['X', 'Y', 'Z'].map(axis => (
               <label key={axis} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                <input 
-                  type="checkbox" 
-                  checked={(mod as Record<string, boolean>)[`mirror${axis}`]} 
+                <input
+                  type="checkbox"
+                  checked={(mod as unknown as Record<string, boolean>)[`mirror${axis}`]}
                   onChange={e => updateModifier(objId, mod.id, { [`mirror${axis}`]: e.target.checked })}
                 />
                 {axis}
@@ -57,7 +57,7 @@ function ModifierItem({ objId, mod }: { objId: string, mod: Modifier }) {
             ))}
           </div>
         )}
-        
+
         {mod.type === 'subdivision' && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>Levels</span>
@@ -78,7 +78,7 @@ function ModifierItem({ objId, mod }: { objId: string, mod: Modifier }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>Direction</span>
               <span style={{ fontSize: '0.72rem', color: ((mod as any).thickness ?? 0.1) >= 0 ? '#4a90e2' : '#e24a6a', fontWeight: 600 }}>
-                {((mod as any).thickness ?? 0.1) >= 0 ? '▲ Outward (Extrude)' : '▼ Inward (Inset)'}
+                {((mod as any).thickness ?? 0.1) >= 0 ? '▲ Outward' : '▼ Inward'}
               </span>
             </div>
             <input
@@ -94,37 +94,138 @@ function ModifierItem({ objId, mod }: { objId: string, mod: Modifier }) {
   );
 }
 
+function SliderRow({ label, value, min, max, step, accentColor, onChange }: {
+  label: string; value: number; min: number; max: number; step: number; accentColor?: string; onChange: (v: number) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <label style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</label>
+        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-mono)' }}>{value.toFixed(step < 1 ? 2 : 0)}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={value}
+        onChange={e => onChange(parseFloat(e.target.value))}
+        style={{ width: '100%', cursor: 'pointer', accentColor: accentColor || '#4772b3' }}
+      />
+    </div>
+  );
+}
+
+function NumericRow({ label, value, onChange, step = 0.01 }: { label: string; value: number; onChange: (v: number) => void; step?: number }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+      <div style={{ width: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>
+        {label}
+      </div>
+      <input
+        type="number"
+        value={value.toFixed(3).replace(/\.?0+$/, '')}
+        step={step}
+        onChange={e => onChange(parseFloat(e.target.value) || 0)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{
+          flex: 1, background: 'rgba(0,0,0,0.3)',
+          border: focused ? '1px solid rgba(71,114,179,0.6)' : '1px solid rgba(255,255,255,0.06)',
+          color: 'var(--text-primary)', padding: '3px 6px', borderRadius: '4px',
+          fontSize: '0.68rem', fontFamily: 'var(--font-mono)', outline: 'none',
+          transition: 'border-color 0.15s ease',
+        }}
+      />
+    </div>
+  );
+}
+
 export function PropertiesEditor() {
-  const { objects, selectedId, updateObject, addModifier } = useEditor3DStore();
+  const { objects, selectedId, updateObject, addModifier, addObject, addLight, addCamera } = useEditor3DStore();
   const { postFX, setPostFX, updatePostFX, physicsEnabled, setPhysicsEnabled } = useEditor3DStore();
   const [activeTab, setActiveTab] = useState<'object' | 'modifiers' | 'material'>('object');
-  
+
   const obj = objects.find(o => o.id === selectedId);
+
+  // FIX: Reset activeTab when object type changes — prevents 'modifiers' tab on lights/cameras
+  useEffect(() => {
+    if (!obj || obj.objectType !== 'mesh') {
+      setActiveTab('object');
+    }
+  }, [selectedId, obj?.objectType]);
 
   if (!obj) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <div style={{
+      <div className="panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', borderRadius: 0, border: 'none', background: 'transparent' }}>
+        <div className="panel-header" style={{
           padding: '10px 12px 8px',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.65)' }}>
+          <span style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
             Scene Properties
           </span>
         </div>
-        
-        <div style={{ flex: 1, overflowY: 'auto', padding: '10px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '10px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+          {/* Quick Add Section */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span className="panel-section-label">Quick Add</span>
+            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+              {(['cube', 'sphere', 'cylinder', 'plane'] as const).map(type => (
+                <button
+                  key={type}
+                  onClick={() => addObject(type)}
+                  style={{
+                    padding: '4px 10px', background: 'rgba(71,114,179,0.15)', border: '1px solid rgba(71,114,179,0.3)',
+                    color: '#8bb8ff', borderRadius: '5px', cursor: 'pointer', fontSize: '0.65rem', fontWeight: 600,
+                    transition: 'all 0.1s', textTransform: 'capitalize',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(71,114,179,0.3)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(71,114,179,0.15)'; }}
+                >
+                  {type}
+                </button>
+              ))}
+              <button
+                onClick={() => addLight('point')}
+                style={{
+                  padding: '4px 10px', background: 'rgba(245,166,35,0.12)', border: '1px solid rgba(245,166,35,0.3)',
+                  color: '#f5a623', borderRadius: '5px', cursor: 'pointer', fontSize: '0.65rem', fontWeight: 600,
+                  transition: 'all 0.1s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(245,166,35,0.25)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(245,166,35,0.12)'; }}
+              >
+                Light
+              </button>
+              <button
+                onClick={() => addCamera()}
+                style={{
+                  padding: '4px 10px', background: 'rgba(107,255,192,0.1)', border: '1px solid rgba(107,255,192,0.25)',
+                  color: '#6bffc0', borderRadius: '5px', cursor: 'pointer', fontSize: '0.65rem', fontWeight: 600,
+                  transition: 'all 0.1s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(107,255,192,0.2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(107,255,192,0.1)'; }}
+              >
+                Camera
+              </button>
+            </div>
+            <p style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.2)', margin: 0 }}>
+              Or press Shift+A in the viewport
+            </p>
+          </div>
+
+          <div className="panel-section-divider" />
+
           {/* POST-PROCESSING SECTION */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span className="panel-section-label">Render Engine</span>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '3px 0' }}>
               <input type="checkbox" checked={postFX.enabled} onChange={e => setPostFX({ enabled: e.target.checked })} style={{ width: '14px', height: '14px', accentColor: '#4772b3' }} />
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fff' }}>Enable Post-Processing</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fff' }}>Post-Processing</span>
             </label>
 
             {postFX.enabled && (
-              <div style={{ paddingLeft: '12px', borderLeft: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ paddingLeft: '12px', borderLeft: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {/* Bloom */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
@@ -133,11 +234,7 @@ export function PropertiesEditor() {
                   </label>
                   {postFX.bloom.enabled && (
                     <div style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)' }}>Intensity</span>
-                        <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)' }}>{postFX.bloom.intensity.toFixed(1)}</span>
-                      </div>
-                      <input type="range" min="0" max="5" step="0.1" value={postFX.bloom.intensity} onChange={e => updatePostFX('bloom', { intensity: parseFloat(e.target.value) })} style={{ accentColor: '#ffb400' }} />
+                      <SliderRow label="Intensity" value={postFX.bloom.intensity} min={0} max={5} step={0.1} accentColor="#ffb400" onChange={v => updatePostFX('bloom', { intensity: v })} />
                     </div>
                   )}
                 </div>
@@ -149,46 +246,39 @@ export function PropertiesEditor() {
                     <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)' }}>Ambient Occlusion (SSAO)</span>
                   </label>
                   {postFX.ssao.enabled && (
-                    <div style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)' }}>Intensity</span>
-                        <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)' }}>{postFX.ssao.intensity.toFixed(1)}</span>
-                      </div>
-                      <input type="range" min="0" max="5" step="0.1" value={postFX.ssao.intensity} onChange={e => updatePostFX('ssao', { intensity: parseFloat(e.target.value) })} style={{ accentColor: '#4a90e2' }} />
+                    <div style={{ paddingLeft: '20px' }}>
+                      <SliderRow label="Intensity" value={postFX.ssao.intensity} min={0} max={5} step={0.1} accentColor="#4a90e2" onChange={v => updatePostFX('ssao', { intensity: v })} />
                     </div>
                   )}
                 </div>
 
                 {/* Depth of Field */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={postFX.dof.enabled} onChange={e => updatePostFX('dof', { enabled: e.target.checked })} />
-                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)' }}>Depth of Field</span>
-                  </label>
-                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={postFX.dof.enabled} onChange={e => updatePostFX('dof', { enabled: e.target.checked })} />
+                  <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)' }}>Depth of Field</span>
+                </label>
 
                 {/* Chromatic Aberration */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={postFX.chromaticAberration.enabled} onChange={e => updatePostFX('chromaticAberration', { enabled: e.target.checked })} />
-                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)' }}>Chromatic Aberration</span>
-                  </label>
-                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={postFX.chromaticAberration.enabled} onChange={e => updatePostFX('chromaticAberration', { enabled: e.target.checked })} />
+                  <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)' }}>Chromatic Aberration</span>
+                </label>
               </div>
             )}
           </div>
 
-          <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)' }} />
+          <div className="panel-section-divider" />
 
           {/* PHYSICS SECTION */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span className="panel-section-label">Simulation</span>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '3px 0' }}>
               <input type="checkbox" checked={physicsEnabled} onChange={e => setPhysicsEnabled(e.target.checked)} style={{ width: '14px', height: '14px', accentColor: '#6bffc0' }} />
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fff' }}>Enable Physics Engine</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fff' }}>Physics Engine</span>
             </label>
             {physicsEnabled && (
               <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', paddingLeft: '22px' }}>
-                Objects will fall and collide. Static objects will stay in place.
+                Objects fall and collide. Planes stay fixed.
               </span>
             )}
           </div>
@@ -200,26 +290,26 @@ export function PropertiesEditor() {
 
   const isLight = obj.objectType === 'light';
   const isCamera = obj.objectType === 'camera';
+  const isMesh = obj.objectType === 'mesh';
 
   const tabs = [
-    { id: 'object', icon: <Box size={16} />, title: 'Object' },
-    ...(!isLight && !isCamera ? [{ id: 'modifiers', icon: <Wrench size={16} />, title: 'Modifiers' }] : []),
-    { id: 'material', icon: isLight ? <Zap size={16} /> : (isCamera ? <Camera size={16} /> : <ImageIcon size={16} />), title: isLight ? 'Light' : (isCamera ? 'Camera' : 'Material') }
+    { id: 'object', icon: <Box size={15} />, title: 'Object' },
+    ...(!isLight && !isCamera ? [{ id: 'modifiers', icon: <Wrench size={15} />, title: 'Modifiers' }] : []),
+    { id: 'material', icon: isLight ? <Zap size={15} /> : (isCamera ? <Camera size={15} /> : <ImageIcon size={15} />), title: isLight ? 'Light' : (isCamera ? 'Camera' : 'Material') }
   ] as const;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div className="panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', borderRadius: 0, border: 'none', background: 'transparent' }}>
 
       {/* Header */}
-      <div style={{
+      <div className="panel-header" style={{
         padding: '10px 12px 8px',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.65)' }}>
+        <span style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
           Properties
         </span>
-        <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-mono)' }}>
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
           {obj.name}
         </span>
       </div>
@@ -251,11 +341,11 @@ export function PropertiesEditor() {
 
         {/* OBJECT TAB */}
         {activeTab === 'object' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
             {/* Name */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Name</label>
+              <label style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Name</label>
               <input
                 type="text"
                 value={obj.name}
@@ -269,27 +359,78 @@ export function PropertiesEditor() {
               />
             </div>
 
+            {/* Inline Transform (Position / Rotation / Scale) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
+                  <Move size={11} color="rgba(255,255,255,0.4)" />
+                  <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location</span>
+                </div>
+                {['X', 'Y', 'Z'].map((axis, i) => (
+                  <NumericRow key={axis} label={axis} value={obj.position[i]}
+                    onChange={v => {
+                      const p = [...obj.position] as [number, number, number];
+                      p[i] = v;
+                      updateObject(obj.id, { position: p });
+                    }}
+                  />
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
+                  <RotateCw size={11} color="rgba(255,255,255,0.4)" />
+                  <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rotation</span>
+                </div>
+                {['X', 'Y', 'Z'].map((axis, i) => (
+                  <NumericRow key={axis} label={axis} value={obj.rotation[i]}
+                    onChange={v => {
+                      const r = [...obj.rotation] as [number, number, number];
+                      r[i] = v;
+                      updateObject(obj.id, { rotation: r });
+                    }}
+                  />
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
+                  <Scaling size={11} color="rgba(255,255,255,0.4)" />
+                  <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Scale</span>
+                </div>
+                {['X', 'Y', 'Z'].map((axis, i) => (
+                  <NumericRow key={axis} label={axis} value={obj.scale[i]}
+                    onChange={v => {
+                      const s = [...obj.scale] as [number, number, number];
+                      s[i] = v;
+                      updateObject(obj.id, { scale: s });
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
             {/* Flags */}
-            {[
-              { id: 'cb_vis', checked: !obj.hidden, onChange: (v: boolean) => updateObject(obj.id, { hidden: !v }), label: 'Visible in Viewport' },
-              { id: 'cb_rvis', checked: obj.renderVisible, onChange: (v: boolean) => updateObject(obj.id, { renderVisible: v }), label: 'Visible in Render' },
-              ...(!isLight && !isCamera ? [{ id: 'cb_smooth', checked: obj.smoothShading ?? false, onChange: (v: boolean) => updateObject(obj.id, { smoothShading: v }), label: 'Smooth Shading' }] : []),
-            ].map(({ id, checked, onChange, label }) => (
-              <label key={id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '3px 0' }}>
-                <input type="checkbox" id={id} checked={checked} onChange={e => onChange(e.target.checked)}
-                  style={{ width: '14px', height: '14px', accentColor: '#4772b3', cursor: 'pointer', flexShrink: 0 }}
-                />
-                <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)' }}>{label}</span>
-              </label>
-            ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {[
+                { id: 'cb_vis', checked: !obj.hidden, onChange: (v: boolean) => updateObject(obj.id, { hidden: !v }), label: 'Visible in Viewport' },
+                { id: 'cb_rvis', checked: obj.renderVisible, onChange: (v: boolean) => updateObject(obj.id, { renderVisible: v }), label: 'Visible in Render' },
+                ...(!isLight && !isCamera ? [{ id: 'cb_smooth', checked: obj.smoothShading ?? false, onChange: (v: boolean) => updateObject(obj.id, { smoothShading: v }), label: 'Smooth Shading' }] : []),
+              ].map(({ id, checked, onChange, label }) => (
+                <label key={id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '3px 0' }}>
+                  <input type="checkbox" id={id} checked={checked} onChange={e => onChange(e.target.checked)}
+                    style={{ width: '14px', height: '14px', accentColor: '#4772b3', cursor: 'pointer', flexShrink: 0 }}
+                  />
+                  <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)' }}>{label}</span>
+                </label>
+              ))}
+            </div>
           </div>
         )}
 
         {/* MODIFIERS TAB */}
-        {activeTab === 'modifiers' && !isLight && !isCamera && (
+        {activeTab === 'modifiers' && isMesh && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-
-            {/* Add modifier buttons */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Add Modifier</span>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -319,7 +460,6 @@ export function PropertiesEditor() {
               </div>
             </div>
 
-            {/* Modifier stack */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {obj.modifiers.length === 0 ? (
                 <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem', padding: '16px 0' }}>No modifiers applied</div>
@@ -332,71 +472,60 @@ export function PropertiesEditor() {
 
         {/* MATERIAL / LIGHT / CAMERA TAB */}
         {activeTab === 'material' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
-            {/* Helper to render a labeled slider row */}
             {isCamera ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <label style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Field of View (FOV)</label>
-                  <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-mono)' }}>{obj.fov || 50}°</span>
-                </div>
-                <input type="range" min="10" max="120" step="1" value={obj.fov || 50} onChange={e => updateObject(obj.id, { fov: parseFloat(e.target.value) })} style={{ width: '100%', cursor: 'pointer', accentColor: '#4772b3' }} />
-              </div>
+              <SliderRow label="Field of View (FOV)" value={obj.fov || 50} min={10} max={120} step={1} accentColor="#4772b3" onChange={v => updateObject(obj.id, { fov: v })} />
             ) : isLight ? (
               <>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Color</label>
+                  <label style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Color</label>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                     <input type="color" value={obj.lightColor} onChange={e => updateObject(obj.id, { lightColor: e.target.value })} style={{ width: '32px', height: '32px', padding: '1px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '4px', background: 'transparent', cursor: 'pointer' }} />
                     <input type="text" value={obj.lightColor} onChange={e => updateObject(obj.id, { lightColor: e.target.value })} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '6px 8px', borderRadius: '5px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', outline: 'none' }} />
                   </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <label style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Intensity</label>
-                    <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-mono)' }}>{obj.lightIntensity}</span>
-                  </div>
-                  <input type="range" min="0" max="20" step="0.1" value={obj.lightIntensity} onChange={e => updateObject(obj.id, { lightIntensity: parseFloat(e.target.value) })} style={{ width: '100%', cursor: 'pointer', accentColor: '#f5a623' }} />
-                </div>
+                <SliderRow label="Intensity" value={obj.lightIntensity ?? 1} min={0} max={20} step={0.1} accentColor="#f5a623" onChange={v => updateObject(obj.id, { lightIntensity: v })} />
                 {(obj.lightType === 'point' || obj.lightType === 'spot') && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <label style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Distance</label>
-                      <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-mono)' }}>{obj.lightDistance}</span>
-                    </div>
-                    <input type="range" min="0" max="50" step="1" value={obj.lightDistance} onChange={e => updateObject(obj.id, { lightDistance: parseFloat(e.target.value) })} style={{ width: '100%', cursor: 'pointer', accentColor: '#f5a623' }} />
-                  </div>
+                  <SliderRow label="Distance" value={obj.lightDistance ?? 10} min={0} max={50} step={1} accentColor="#f5a623" onChange={v => updateObject(obj.id, { lightDistance: v })} />
                 )}
               </>
             ) : (
               <>
+                {/* Base Color */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Base Color</label>
+                  <label style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Base Color</label>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                     <input type="color" value={obj.color} onChange={e => updateObject(obj.id, { color: e.target.value })} style={{ width: '32px', height: '32px', padding: '1px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '4px', background: 'transparent', cursor: 'pointer' }} />
                     <input type="text" value={obj.color} onChange={e => updateObject(obj.id, { color: e.target.value })} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '6px 8px', borderRadius: '5px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', outline: 'none' }} />
                   </div>
                 </div>
 
-                {[{ label: 'Roughness', key: 'roughness', value: obj.roughness, color: '#c084fc' }, { label: 'Metalness', key: 'metalness', value: obj.metalness, color: '#6bffc0' }].map(({ label, key, value, color }) => (
-                  <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <label style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</label>
-                      <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-mono)' }}>{value.toFixed(2)}</span>
-                    </div>
-                    <input type="range" min="0" max="1" step="0.01" value={value} onChange={e => updateObject(obj.id, { [key]: parseFloat(e.target.value) })} style={{ width: '100%', cursor: 'pointer', accentColor: color }} />
-                  </div>
-                ))}
+                <SliderRow label="Roughness" value={obj.roughness} min={0} max={1} step={0.01} accentColor="#c084fc" onChange={v => updateObject(obj.id, { roughness: v })} />
+                <SliderRow label="Metalness" value={obj.metalness} min={0} max={1} step={0.01} accentColor="#6bffc0" onChange={v => updateObject(obj.id, { metalness: v })} />
 
+                {/* Emissive — previously missing from UI */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Emissive Color</label>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <input type="color" value={obj.emissive || '#000000'} onChange={e => updateObject(obj.id, { emissive: e.target.value })} style={{ width: '32px', height: '32px', padding: '1px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '4px', background: 'transparent', cursor: 'pointer' }} />
+                    <input type="text" value={obj.emissive || '#000000'} onChange={e => updateObject(obj.id, { emissive: e.target.value })} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '6px 8px', borderRadius: '5px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', outline: 'none' }} />
+                  </div>
+                </div>
+                <SliderRow label="Emissive Intensity" value={obj.emissiveIntensity ?? 0} min={0} max={5} step={0.1} accentColor="#ff6b6b" onChange={v => updateObject(obj.id, { emissiveIntensity: v })} />
+
+                {/* Opacity — previously missing from UI */}
+                <SliderRow label="Opacity" value={obj.opacity ?? 1} min={0} max={1} step={0.01} accentColor="#8bb8ff" onChange={v => updateObject(obj.id, { opacity: v })} />
+
+                {/* Texture URLs */}
                 {[
                   { label: 'Color Map URL', key: 'map', value: obj.map },
                   { label: 'Normal Map URL', key: 'normalMap', value: obj.normalMap },
                   { label: 'Roughness Map URL', key: 'roughnessMap', value: obj.roughnessMap },
                 ].map(({ label, key, value }) => (
                   <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</label>
-                    <input type="text" placeholder="https://…" value={(value as string) || ''} onChange={e => updateObject(obj.id, { [key]: e.target.value })} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '6px 8px', borderRadius: '5px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', outline: 'none' }} />
+                    <label style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</label>
+                    <input type="text" placeholder="https://…" value={(value as string) || ''} onChange={e => updateObject(obj.id, { [key]: e.target.value })} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '6px 8px', borderRadius: '5px', fontSize: '0.72rem', fontFamily: 'var(--font-mono)', outline: 'none' }} />
                   </div>
                 ))}
 

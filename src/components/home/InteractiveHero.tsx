@@ -40,7 +40,9 @@ function FloatingShape({
           metalness={0.9}
           clearcoat={1}
           transparent
-          opacity={0.55}
+          opacity={0.85}
+          emissive={color}
+          emissiveIntensity={0.2}
           wireframe
         />
       </mesh>
@@ -80,11 +82,11 @@ function Scene3D() {
   return (
     <>
       {/* Lighting — same family as the floating shapes */}
-      <ambientLight intensity={0.15} />
-      <directionalLight position={[5, 7, 5]}  intensity={1.4} color="#c8deff" />
-      <pointLight      position={[-6, 3, 4]}  intensity={1.6} color="#4a7dc4" />
-      <pointLight      position={[4, -5, -3]} intensity={0.6} color="#8E54E9" />
-      <pointLight      position={[0, 6, -6]}  intensity={0.5} color="#ffffff" />
+      <ambientLight intensity={0.2} />
+      <directionalLight position={[5, 7, 5]}  intensity={1.8} color="#c8deff" />
+      <pointLight      position={[-6, 3, 4]}  intensity={2.2} color="#4a7dc4" />
+      <pointLight      position={[4, -5, -3]} intensity={1.2} color="#8E54E9" />
+      <pointLight      position={[0, 6, -6]}  intensity={1.0} color="#ffffff" />
 
       {/* ── Central Icosahedron — dark metal, matching the satellites ── */}
       <Float speed={1.2} rotationIntensity={0} floatIntensity={0.3}>
@@ -106,7 +108,7 @@ function Scene3D() {
             color="#4a7dc4"
             wireframe
             transparent
-            opacity={0.5}
+            opacity={0.8}
           />
         </mesh>
 
@@ -130,7 +132,7 @@ function Scene3D() {
             color="#8EA8D8"
             wireframe
             transparent
-            opacity={0.08}
+            opacity={0.15}
           />
         </mesh>
       </Float>
@@ -139,15 +141,15 @@ function Scene3D() {
       <group ref={ringRef}>
         <mesh rotation={[Math.PI / 2, 0, 0]} scale={4}>
           <torusGeometry args={[1, 0.003, 16, 256]} />
-          <meshBasicMaterial color="#4772b3" transparent opacity={0.3} />
+          <meshBasicMaterial color="#4772b3" transparent opacity={0.5} />
         </mesh>
         <mesh rotation={[Math.PI / 2.8, Math.PI / 5, 0]} scale={5}>
           <torusGeometry args={[1, 0.002, 16, 256]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.12} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.3} />
         </mesh>
         <mesh rotation={[Math.PI / 1.6, Math.PI / 3, 0]} scale={5.8}>
           <torusGeometry args={[1, 0.002, 16, 256]} />
-          <meshBasicMaterial color="#8E54E9" transparent opacity={0.15} />
+          <meshBasicMaterial color="#8E54E9" transparent opacity={0.4} />
         </mesh>
       </group>
 
@@ -198,14 +200,14 @@ function Interactive2DCanvas() {
     const oy = ((mouseRef.current.y * -0.035) % gridSize + gridSize) % gridSize;
 
     const ambientGlow = ctx.createRadialGradient(W * 0.68, H * 0.48, 0, W * 0.68, H * 0.48, Math.max(W, H) * 0.48);
-    ambientGlow.addColorStop(0, "rgba(74, 125, 196, 0.22)");
-    ambientGlow.addColorStop(0.35, "rgba(142, 84, 233, 0.08)");
+    ambientGlow.addColorStop(0, "rgba(74, 125, 196, 0.45)");
+    ambientGlow.addColorStop(0.35, "rgba(142, 84, 233, 0.2)");
     ambientGlow.addColorStop(1, "rgba(6, 8, 13, 0)");
     ctx.fillStyle = ambientGlow;
     ctx.fillRect(0, 0, W, H);
 
     // ── Faint grid ──
-    ctx.strokeStyle = "rgba(71, 114, 179, 0.085)";
+    ctx.strokeStyle = "rgba(71, 114, 179, 0.15)";
     ctx.lineWidth = 0.5;
     for (let x = ox; x < W; x += gridSize) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
@@ -215,7 +217,7 @@ function Interactive2DCanvas() {
     }
 
     // ── Heavier major grid ──
-    ctx.strokeStyle = "rgba(142, 168, 216, 0.16)";
+    ctx.strokeStyle = "rgba(142, 168, 216, 0.3)";
     ctx.lineWidth = 1;
     for (let x = ox; x < W; x += gridSize * 5) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();

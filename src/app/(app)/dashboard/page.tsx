@@ -129,6 +129,7 @@ function ProjectCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.07, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -6, scale: 1.015 }}
       onMouseLeave={() => setMenuOpen(false)}
     >
       <Link href={`/editor/${project.type}/${project.id}`} className="project-card-thumb">
@@ -147,6 +148,11 @@ function ProjectCard({
         </div>
         {!project.isPreset && (
           <div style={{ position: "relative" }}>
+            <div className="project-card-hover-actions">
+              <button className="project-card-menu-btn" title="Delete" onClick={(e) => { e.preventDefault(); onDelete(project.id); }}>
+                <Trash2 size={13} color="#f87171" />
+              </button>
+            </div>
             <button
               type="button"
               className={`project-card-menu-btn${menuOpen ? " project-card-menu-btn--open" : ""}`}
@@ -220,15 +226,24 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="dashboard-stats">
-            <div className="dashboard-stat">
+            <div
+              className={`dashboard-stat ${filter === "2d" ? "dashboard-stat--active" : ""}`}
+              onClick={() => setFilter(filter === "2d" ? "all" : "2d")}
+            >
               <span className="dashboard-stat-value">{projects.filter((p) => p.type === "2d").length}</span>
               <span className="dashboard-stat-label">2D</span>
             </div>
-            <div className="dashboard-stat">
+            <div
+              className={`dashboard-stat ${filter === "3d" ? "dashboard-stat--active" : ""}`}
+              onClick={() => setFilter(filter === "3d" ? "all" : "3d")}
+            >
               <span className="dashboard-stat-value">{projects.filter((p) => p.type === "3d").length}</span>
               <span className="dashboard-stat-label">3D</span>
             </div>
-            <div className="dashboard-stat dashboard-stat--accent">
+            <div
+              className="dashboard-stat dashboard-stat--accent"
+              style={{ cursor: "default" }}
+            >
               <span className="dashboard-stat-value">{projects.filter((p) => p.isPreset).length}</span>
               <span className="dashboard-stat-label">Presets</span>
             </div>
@@ -240,6 +255,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.08, duration: 0.45 }}
+          whileHover={{ boxShadow: "0 12px 24px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.12)" }}
         >
           <div style={{ position: "relative", flex: 1, minWidth: 200, maxWidth: 360 }}>
             <Search size={14} className="dashboard-search-icon" />
@@ -298,26 +314,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <motion.div
-          className="dashboard-quick-access glass-panel"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          <Sparkles size={18} color="#4772b3" style={{ flexShrink: 0 }} />
-          <div style={{ flex: 1 }}>
-            <p className="dashboard-quick-title">Quick access</p>
-            <p className="dashboard-quick-desc">Open a preset or start fresh — work saves automatically</p>
-          </div>
-          <div className="dashboard-quick-actions">
-            <Link href="/editor/2d/new" className="site-pill site-pill--2d">
-              <PencilRuler size={14} /> New 2D Draft
-            </Link>
-            <Link href="/editor/3d/new" className="site-pill site-pill--3d">
-              <Box size={14} /> New 3D Model
-            </Link>
-          </div>
-        </motion.div>
+
       </main>
     </div>
   );

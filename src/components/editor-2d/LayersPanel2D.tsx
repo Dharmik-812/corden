@@ -30,8 +30,8 @@ function LayerRow({ layer, isActive, index, total }: {
     <div
       onClick={() => setActiveLayer(layer.id)}
       style={{
-        display: "flex", alignItems: "center", gap: "6px",
-        padding: "7px 10px", borderRadius: "8px", cursor: "pointer",
+        display: "flex", alignItems: "center", gap: "8px",
+        padding: "8px 12px", borderRadius: "10px", cursor: "pointer",
         background: rowBg,
         border: `1px solid ${isActive ? "rgba(71,114,179,0.35)" : "transparent"}`,
         transition: "all 0.15s",
@@ -162,22 +162,21 @@ export function LayersPanel2D() {
   const reversed = [...layers].reverse();
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", fontFamily: "var(--font-sans)" }}>
+    <div className="panel" style={{ height: "100%", display: "flex", flexDirection: "column", borderRadius: 0, border: 'none', background: 'transparent' }}>
       {/* Header */}
-      <div style={{
+      <div className="panel-header" style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,0.05)",
-        background: "linear-gradient(180deg, rgba(20,22,30,0.6) 0%, transparent 100%)",
-        flexShrink: 0,
+        padding: "12px 14px", flexShrink: 0,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <Layers size={13} color="#4772b3" />
-          <span style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.6)" }}>
+          <Layers size={13} color="var(--accent-primary)" />
+          <span style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-secondary)" }}>
             Layers
           </span>
           <span style={{
-            background: "rgba(71,114,179,0.2)", color: "#8bb8ff",
+            background: "var(--bg-card)", color: "var(--accent-primary)",
             fontSize: "0.6rem", fontWeight: 700, padding: "1px 6px", borderRadius: "10px",
+            border: "1px solid var(--border-secondary)"
           }}>
             {layers.length}
           </span>
@@ -193,7 +192,7 @@ export function LayersPanel2D() {
       </div>
 
       {/* Layer list */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "6px", display: "flex", flexDirection: "column", gap: "3px" }}>
+      <div className="panel-body" style={{ flex: 1, overflowY: "auto", padding: "6px", display: "flex", flexDirection: "column", gap: "3px" }}>
         {reversed.map((layer, displayIdx) => {
           const realIdx = layers.findIndex(l => l.id === layer.id);
           return (

@@ -11,7 +11,7 @@ import { InteractiveHero } from "@/components/home/InteractiveHero";
 import { Box, PencilRuler, Sparkles, Layers, Cpu, Zap, ArrowRight } from "lucide-react";
 
 /* ─── Reusable animated section wrapper ─── */
-function FadeInSection({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
+function FadeInSection({ children, delay = 0, className = "", style }: { children: React.ReactNode; delay?: number; className?: string; style?: React.CSSProperties }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   return (
@@ -21,6 +21,7 @@ function FadeInSection({ children, delay = 0, className = "" }: { children: Reac
       animate={isInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay }}
       className={className}
+      style={style}
     >
       {children}
     </motion.div>
@@ -39,7 +40,7 @@ function GlowLink({ href, children, variant = "primary" }: { href: string; child
         display: "inline-flex",
         alignItems: "center",
         gap: "8px",
-        padding: variant === "primary" ? "14px 36px" : "14px 24px",
+        padding: variant === "primary" ? "14px 36px" : "14px 26px",
         borderRadius: "9999px",
         fontSize: "0.9rem",
         fontWeight: 600,
@@ -47,21 +48,22 @@ function GlowLink({ href, children, variant = "primary" }: { href: string; child
         textDecoration: "none",
         position: "relative",
         overflow: "hidden",
-        transition: "transform 0.2s ease, box-shadow 0.2s ease",
-        transform: hovered ? "translateY(-2px)" : "none",
+        transition: "transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease",
+        transform: hovered ? "translateY(-2px) scale(1.02)" : "none",
         ...(variant === "primary" ? {
           background: hovered
-            ? "linear-gradient(135deg, #5a88cc, #3655a3)"
-            : "linear-gradient(135deg, #4772b3, #2d4a8a)",
+            ? "linear-gradient(135deg, #5a88cc, #9d69f0)"
+            : "linear-gradient(135deg, #4772b3, #8E54E9)",
           color: "#fff",
           boxShadow: hovered
-            ? "0 8px 32px rgba(71, 114, 179, 0.6), inset 0 1px 0 rgba(255,255,255,0.2)"
-            : "0 4px 20px rgba(71, 114, 179, 0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
+            ? "0 0 32px rgba(85,155,255,0.55), 0 8px 32px rgba(71,114,179,0.5), inset 0 1px 0 rgba(255,255,255,0.25)"
+            : "0 0 20px rgba(85,155,255,0.25), 0 4px 16px rgba(71,114,179,0.3), inset 0 1px 0 rgba(255,255,255,0.15)",
         } : {
-          background: hovered ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.03)",
-          color: hovered ? "#ffffff" : "rgba(255,255,255,0.6)",
-          border: "1px solid rgba(255,255,255,0.15)",
-          boxShadow: hovered ? "0 4px 20px rgba(0,0,0,0.3)" : "none",
+          background: hovered ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.04)",
+          color: hovered ? "#ffffff" : "rgba(255,255,255,0.75)",
+          border: hovered ? "1px solid rgba(255,255,255,0.3)" : "1px solid rgba(255,255,255,0.22)",
+          backdropFilter: "blur(12px)",
+          boxShadow: hovered ? "0 4px 20px rgba(0,0,0,0.4)" : "none",
         }),
       }}
     >
@@ -208,7 +210,7 @@ export default function Home() {
           <div style={{
             position: "absolute", inset: 0, zIndex: 10, pointerEvents: "none",
             display: "flex", flexDirection: "column", justifyContent: "center",
-            padding: "0 6rem", maxWidth: "680px",
+            padding: "0 6rem", maxWidth: "720px",
           }}>
 
             <motion.h1
@@ -216,22 +218,22 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 2.5, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
               style={{
-                fontSize: "clamp(2.8rem, 5.5vw, 5rem)",
-                fontWeight: 800,
-                lineHeight: 1.06,
-                letterSpacing: "-0.035em",
-                color: "#f5f5f5",
-                marginBottom: "20px",
+                fontSize: "clamp(3rem, 6vw, 5.5rem)",
+                fontWeight: 900,
+                lineHeight: 1.04,
+                letterSpacing: "-0.04em",
+                color: "#f8f8f8",
+                marginBottom: "24px",
               }}
             >
               Design without{" "}
               <span style={{
-                background: "linear-gradient(135deg, #4a7dc4 0%, #8eb3e8 50%, #d0e4ff 100%)",
+                background: "linear-gradient(135deg, #559BFF 0%, #8E54E9 50%, #d0e4ff 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
               }}>
-                limits.
+                boundaries.
               </span>
             </motion.h1>
 
@@ -240,15 +242,15 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 2.65, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               style={{
-                fontSize: "1rem",
-                color: "rgba(255,255,255,0.42)",
-                lineHeight: 1.8,
-                marginBottom: "36px",
-                maxWidth: "480px",
+                fontSize: "1.0625rem",
+                color: "rgba(255,255,255,0.60)",
+                lineHeight: 1.75,
+                marginBottom: "28px",
+                maxWidth: "500px",
               }}
             >
-              Blender-grade 3D modelling meets precision 2D drafting —
-              all running live in your browser, zero install.
+              Professional-grade 3D modeling and precision 2D drafting converge.<br />
+              Build, visualize, and render breathtaking designs natively in your browser — zero installation required.
             </motion.p>
 
             <motion.div
@@ -269,7 +271,7 @@ export default function Home() {
           {/* Scroll hint */}
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.35 }}
+            animate={{ opacity: 0.55 }}
             transition={{ delay: 3.5, duration: 1 }}
             style={{
               position: "absolute", bottom: "2.5rem", left: "50%",
@@ -278,12 +280,13 @@ export default function Home() {
             }}
           >
             <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-              style={{ width: "1px", height: "36px", background: "linear-gradient(to bottom, rgba(255,255,255,0.35), transparent)" }}
+              animate={{ y: [0, 10, 0] }}
+              transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
+              style={{ width: "1px", height: "40px", background: "linear-gradient(to bottom, rgba(255,255,255,0.5), transparent)" }}
             />
           </motion.div>
         </section>
+
 
       </main>
     </>

@@ -6,9 +6,10 @@ import { ChevronRight, Save, Layers, Edit3, Box } from "lucide-react";
 
 const dropdownStyle: React.CSSProperties = {
   position: 'absolute', top: 'calc(100% + 2px)', left: 0, minWidth: '180px',
-  background: '#1e2026', border: '1px solid rgba(255,255,255,0.08)',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.6)', padding: '4px 0', zIndex: 200,
-  borderRadius: '6px',
+  background: 'rgba(12,13,18,0.98)', backdropFilter: 'blur(40px)',
+  border: '1px solid var(--border-primary)',
+  boxShadow: '0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04) inset',
+  padding: '6px', zIndex: 200, borderRadius: '12px',
 };
 
 function MenuItem({ label, onClick, shortcut, disabled, closeMenu }: { label: string; onClick?: () => void; shortcut?: string; disabled?: boolean; closeMenu: () => void }) {
@@ -32,6 +33,7 @@ function MenuItem({ label, onClick, shortcut, disabled, closeMenu }: { label: st
 
 function Divider3D() { return <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)', margin: '3px 0' }} />; }
 
+// FIX: Added required closeMenu prop to SubmenuItem
 function SubmenuItem({ label, items, id, closeMenu }: { label: string; items: { label: string; onClick: () => void }[]; id: string; closeMenu: () => void }) {
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   return (
@@ -47,6 +49,7 @@ function SubmenuItem({ label, items, id, closeMenu }: { label: string; items: { 
       {activeSubmenu === id && (
         <div style={{ ...dropdownStyle, position: 'absolute', left: 'calc(100% - 4px)', top: '-4px', minWidth: '150px' }}>
           {items.map((item, idx) => (
+            // FIX: Pass closeMenu to each MenuItem so the root menu closes after selection
             <MenuItem key={idx} label={item.label} onClick={() => { item.onClick(); closeMenu(); }} closeMenu={closeMenu} />
           ))}
         </div>
@@ -56,8 +59,8 @@ function SubmenuItem({ label, items, id, closeMenu }: { label: string; items: { 
 }
 
 export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: string) => void; saveStatus?: string; title?: string }) {
-  const { 
-    addObject, addLight, addCamera, undo, redo, 
+  const {
+    addObject, addLight, addCamera, undo, redo,
     setShowLeftPanel, showLeftPanel, setShowNPanel, showNPanel,
     setViewPreset, setObjects, commitHistory,
     selectionMode, setSelectionMode, selectedId, objects,
@@ -95,13 +98,15 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
   const canEditMode = selectedId && objects.find(o => o.id === selectedId)?.objectType === 'mesh';
 
   return (
-    <div ref={menuBarRef} style={{
-      display: 'flex', alignItems: 'center', height: '32px',
-      background: '#16181d',
-      borderBottom: '1px solid rgba(255,255,255,0.06)',
-      padding: '0 8px', gap: '2px',
+    <div ref={menuBarRef} className="editor-top-menubar" style={{
+      display: 'flex', alignItems: 'center', height: '36px',
+      background: 'rgba(10, 12, 18, 0.95)',
+      backdropFilter: 'blur(24px)',
+      borderBottom: '1px solid var(--border-primary)',
+      padding: '0 10px', gap: '2px',
       fontFamily: 'var(--font-sans)', userSelect: 'none',
-      flexShrink: 0,
+      flexShrink: 0, overflowX: 'auto',
+      scrollbarWidth: 'none',
     }}>
       {/* Logo mark */}
       <div style={{
@@ -123,9 +128,9 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
             e.currentTarget.style.width = `${Math.max(10, e.target.value.length + 1)}ch`;
           }}
           onFocus={(e) => {
-             e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-             e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
-             e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
+            e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+            e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
           }}
           onBlur={(e) => {
             e.currentTarget.style.background = 'transparent';
@@ -141,13 +146,13 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.currentTarget.blur();
           }}
-          style={{ 
-             fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', 
-             marginRight: '8px', 
-             background: 'transparent', border: '1px solid transparent', outline: 'none',
-             padding: '2px 6px', borderRadius: '4px',
-             width: `${Math.max(10, title.length + 1)}ch`,
-             transition: 'all 0.2s', fontFamily: 'inherit'
+          style={{
+            fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)',
+            marginRight: '8px',
+            background: 'transparent', border: '1px solid transparent', outline: 'none',
+            padding: '2px 6px', borderRadius: '4px',
+            width: `${Math.max(10, title.length + 1)}ch`,
+            transition: 'all 0.2s', fontFamily: 'inherit'
           }}
           title="Click to rename"
         />
@@ -173,25 +178,26 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
           {activeMenu === id && (
             <div style={dropdownStyle}>
               {id === 'file' && (<>
-                <MenuItem label="New Scene" onClick={() => { 
-                  if (confirm('Clear scene?')) { 
-                    setObjects([]); 
+                <MenuItem label="New Scene" closeMenu={closeMenu} onClick={() => {
+                  if (confirm('Clear scene?')) {
+                    setObjects([]);
                     useEditor3DStore.getState().setAnnotations([]);
                     useEditor3DStore.getState().setMeasurements([]);
-                    useEditor3DStore.getState().setCursor3D([0,0,0]);
-                    commitHistory(); 
-                  } 
+                    useEditor3DStore.getState().setCursor3D([0, 0, 0]);
+                    commitHistory();
+                  }
                 }} />
-                <MenuItem label="Save" shortcut="Ctrl S" onClick={onSave} />
-                <Divider />
-                <MenuItem label="Export GLTF" onClick={() => window.dispatchEvent(new Event('export-gltf'))} />
+                <MenuItem label="Save" shortcut="Ctrl S" onClick={onSave} closeMenu={closeMenu} />
+                <Divider3D />
+                <MenuItem label="Export GLTF" onClick={() => window.dispatchEvent(new Event('export-gltf'))} closeMenu={closeMenu} />
               </>)}
               {id === 'edit' && (<>
-                <MenuItem label="Undo" shortcut="Ctrl Z" onClick={undo} />
-                <MenuItem label="Redo" shortcut="Ctrl Y" onClick={redo} />
+                <MenuItem label="Undo" shortcut="Ctrl Z" onClick={undo} closeMenu={closeMenu} />
+                <MenuItem label="Redo" shortcut="Ctrl Y" onClick={redo} closeMenu={closeMenu} />
               </>)}
               {id === 'add' && (<>
-                <SubmenuItem id="mesh" label="Mesh" items={[
+                {/* FIX: Pass closeMenu to all SubmenuItem calls */}
+                <SubmenuItem id="mesh" label="Mesh" closeMenu={closeMenu} items={[
                   { label: 'Cube', onClick: () => addObject('cube') },
                   { label: 'Sphere', onClick: () => addObject('sphere') },
                   { label: 'Cylinder', onClick: () => addObject('cylinder') },
@@ -200,27 +206,31 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
                   { label: 'Torus', onClick: () => addObject('torus') },
                   { label: 'Icosphere', onClick: () => addObject('icosphere') },
                 ]} />
-                <SubmenuItem id="light" label="Light" items={[
+                <SubmenuItem id="light" label="Light" closeMenu={closeMenu} items={[
                   { label: 'Point', onClick: () => addLight('point') },
                   { label: 'Sun', onClick: () => addLight('sun') },
                   { label: 'Spot', onClick: () => addLight('spot') },
                   { label: 'Area', onClick: () => addLight('area') },
                 ]} />
-                <MenuItem label="Camera" onClick={() => addCamera()} />
+                <MenuItem label="Camera" onClick={() => addCamera()} closeMenu={closeMenu} />
               </>)}
               {id === 'view' && (<>
-                <MenuItem label={showLeftPanel ? "Hide Toolbar" : "Show Toolbar"} shortcut="T" onClick={() => setShowLeftPanel(!showLeftPanel)} />
-                <MenuItem label={showNPanel ? "Hide N-Panel" : "Show N-Panel"} shortcut="N" onClick={() => setShowNPanel(!showNPanel)} />
-                <Divider />
-                <SubmenuItem id="viewport" label="Viewport" items={[
-                  { label: 'Front', onClick: () => setViewPreset('front') },
-                  { label: 'Right', onClick: () => setViewPreset('right') },
-                  { label: 'Top', onClick: () => setViewPreset('top') },
-                  { label: 'Camera', onClick: () => setViewPreset('camera') },
+                <MenuItem label={showLeftPanel ? "Hide Toolbar" : "Show Toolbar"} shortcut="T" onClick={() => setShowLeftPanel(!showLeftPanel)} closeMenu={closeMenu} />
+                <MenuItem label={showNPanel ? "Hide N-Panel" : "Show N-Panel"} shortcut="N" onClick={() => setShowNPanel(!showNPanel)} closeMenu={closeMenu} />
+                <Divider3D />
+                <SubmenuItem id="viewport" label="Viewport" closeMenu={closeMenu} items={[
+                  { label: 'Front (Num1)', onClick: () => setViewPreset('front') },
+                  { label: 'Back (Ctrl+Num1)', onClick: () => setViewPreset('back') },
+                  { label: 'Right (Num3)', onClick: () => setViewPreset('right') },
+                  { label: 'Left (Ctrl+Num3)', onClick: () => setViewPreset('left') },
+                  { label: 'Top (Num7)', onClick: () => setViewPreset('top') },
+                  { label: 'Bottom (Ctrl+Num7)', onClick: () => setViewPreset('bottom') },
+                  { label: 'Camera (Num0)', onClick: () => setViewPreset('camera') },
+                  { label: 'Perspective', onClick: () => setViewPreset('perspective') },
                 ]} />
-                <Divider />
-                <MenuItem label="Clear Annotations" onClick={() => useEditor3DStore.getState().setAnnotations([])} />
-                <MenuItem label="Clear Measurements" onClick={() => useEditor3DStore.getState().setMeasurements([])} />
+                <Divider3D />
+                <MenuItem label="Clear Annotations" onClick={() => useEditor3DStore.getState().setAnnotations([])} closeMenu={closeMenu} />
+                <MenuItem label="Clear Measurements" onClick={() => useEditor3DStore.getState().setMeasurements([])} closeMenu={closeMenu} />
               </>)}
             </div>
           )}
@@ -264,9 +274,10 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
 
       <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.08)', margin: '0 8px', flexShrink: 0 }} />
 
-      {/* Stats */}
-      <div style={{ display: 'flex', gap: '10px', fontSize: '0.65rem', fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.3)' }}>
+      {/* Stats — hidden on mobile */}
+      <div className="editor-stats-bar" style={{ display: 'flex', gap: '10px', fontSize: '0.65rem', fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.3)' }}>
         <span>{objectCount} mesh{objectCount !== 1 ? 'es' : ''}</span>
+        <span>·</span>
         <span>{lightCount} light{lightCount !== 1 ? 's' : ''}</span>
       </div>
 

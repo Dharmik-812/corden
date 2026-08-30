@@ -64,16 +64,13 @@ export function ColorPalette() {
   const setActiveColor = activeColorTarget === "primary" ? setPrimaryColor : setSecondaryColor;
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", fontFamily: "var(--font-sans)" }}>
+    <div className="panel" style={{ height: "100%", display: "flex", flexDirection: "column", borderRadius: 0, border: 'none', background: 'transparent' }}>
 
       {/* ── Active Color Selector ── */}
-      <div style={{
-        padding: "14px 16px",
-        borderBottom: "1px solid rgba(255,255,255,0.05)",
-        background: "linear-gradient(180deg, rgba(20,22,30,0.6) 0%, transparent 100%)",
-        flexShrink: 0,
+      <div className="panel-header" style={{
+        padding: "14px 16px", flexShrink: 0,
       }}>
-        <div style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: "12px" }}>
+        <div style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-tertiary)", marginBottom: "12px" }}>
           Colors
         </div>
 
@@ -370,13 +367,12 @@ export function ColorPalette() {
                   aspectRatio: "1", borderRadius: "5px", cursor: "pointer",
                   background: color,
                   border: primaryColor === color
-                    ? "2px solid rgba(255,255,255,0.9)"
+                    ? "1px solid rgba(255,255,255,0.9)"
                     : secondaryColor === color
-                    ? "2px solid rgba(255,255,255,0.4)"
+                    ? "1px solid rgba(255,255,255,0.4)"
                     : "1px solid rgba(255,255,255,0.07)",
-                  outline: primaryColor === color ? "2px solid rgba(74,144,226,0.55)" : "none",
-                  outlineOffset: "2px",
-                  transition: "transform 0.1s, outline 0.1s",
+                  boxShadow: primaryColor === color ? "0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent-primary)" : "none",
+                  transition: "transform 0.1s, box-shadow 0.1s",
                   boxSizing: "border-box",
                 }}
                 onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.2)"; e.currentTarget.style.zIndex = "10"; }}
