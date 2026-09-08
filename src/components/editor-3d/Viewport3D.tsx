@@ -4,7 +4,7 @@ import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, Grid, Environment, GizmoHelper, GizmoViewport, Line, Text } from "@react-three/drei";
 import { SceneObjects } from "./SceneObjects";
 import { useEditor3DStore } from "@/stores/editor3d-store";
-import { useEffect, useRef, Suspense, useMemo } from "react";
+import { useEffect, useRef, Suspense } from "react";
 import * as THREE from "three";
 import { GLTFExporter } from "three-stdlib";
 import { EffectComposer, Bloom, SSAO, DepthOfField, ChromaticAberration } from "@react-three/postprocessing";
@@ -288,13 +288,10 @@ const SHADING_LABELS: Record<string, string> = { solid: 'Solid', wireframe: 'Wir
 
 export function Viewport3D() {
   const {
-    setTransformMode, removeObject, selectedId, shadingMode, environmentPreset,
-    showGrid, setShowShaderPie, duplicateObject,
-    undo, redo, hideObject, unhideAll, addObject, addMenuPosition, setAddMenuPosition,
-    setViewPreset, isOrtho, setIsOrtho, showNPanel, setShowNPanel,
-    showLeftPanel, setShowLeftPanel, showTimeline, setShowTimeline, addKeyframe, setIsPlaying, isPlaying,
-    selectionMode, setSelectionMode, commitHistory,
-    showAxes, viewPreset, addModifier, postFX, physicsEnabled
+    shadingMode, environmentPreset,
+    showGrid,
+    selectionMode,
+    viewPreset, postFX, physicsEnabled
   } = useEditor3DStore();
 
   // FIX: Access all store functions via getState() inside handlers to avoid stale closures.

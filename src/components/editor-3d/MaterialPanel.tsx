@@ -1,7 +1,7 @@
 "use client";
 
 import { useEditor3DStore } from "@/stores/editor3d-store";
-import { motion } from "framer-motion";
+
 
 export function MaterialPanel() {
   const { objects, selectedId, updateObject } = useEditor3DStore();

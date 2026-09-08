@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Box, PencilRuler, LayoutDashboard, CreditCard, LogOut, ArrowRight, Menu, X } from "lucide-react";
 import { Logo } from "./Logo";
@@ -21,10 +21,16 @@ const NAV_ITEMS = [
 
 export function SiteHeader({ variant: variantProp }: SiteHeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, hydrate, signOut } = useAuthStore();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hoveredPath, setHoveredPath] = useState<string | null>(null);
+
+  const handleSignOut = useCallback(async () => {
+    await signOut();
+    router.push("/");
+  }, [signOut, router]);
 
   const variant: SiteHeaderVariant =
     variantProp ??
@@ -110,7 +116,7 @@ export function SiteHeader({ variant: variantProp }: SiteHeaderProps) {
                 <Link href="/profile" className="site-user-avatar-btn">
                   {user.display_name.charAt(0).toUpperCase()}
                 </Link>
-                <button type="button" className="site-logout-icon-btn" onClick={signOut} title="Log out">
+                <button type="button" className="site-logout-icon-btn" onClick={handleSignOut} title="Log out">
                   <LogOut size={16} />
                 </button>
               </div>

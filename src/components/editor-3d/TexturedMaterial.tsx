@@ -5,7 +5,6 @@ import { SceneObject } from "@/stores/editor3d-store";
 import * as THREE from "three";
 
 export function TexturedMaterial({ obj, isSelected, shadingMode }: { obj: SceneObject, isSelected: boolean, shadingMode: string }) {
-  const isWire = shadingMode === 'wireframe' || obj.wireframe;
   const color = shadingMode === 'solid' ? '#b0b0b0' : obj.color;
 
   if (shadingMode === 'wireframe') {

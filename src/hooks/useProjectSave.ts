@@ -15,6 +15,7 @@ import {
 
 export type SaveStatus = "saved" | "saving" | "unsaved";
 
+// ─── 2D ───────────────────────────────────────────────────────────────────
 export function useProjectSave2D(projectId: string) {
   const router = useRouter();
   const resolvedId = projectId === "new" ? null : projectId;
@@ -28,8 +29,9 @@ export function useProjectSave2D(projectId: string) {
     loadedRef.current = false;
     autosaveEnabledRef.current = false;
     if (projectId === "new") {
-      const meta = createProject("2d");
-      router.replace(`/editor/2d/${meta.id}`);
+      createProject("2d").then((meta) => {
+        router.replace(`/editor/2d/${meta.id}`);
+      });
     }
   }, [projectId, router]);
 
@@ -37,51 +39,59 @@ export function useProjectSave2D(projectId: string) {
     if (!resolvedId || loadedRef.current) return;
     loadedRef.current = true;
 
-    const data = loadProject2D(resolvedId);
-    const meta = getProjectMeta(resolvedId);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (meta) setTitle(meta.title);
-
-    if (data) {
-      usePixelEditorStore.setState({
-        layers: JSON.parse(JSON.stringify(data.layers)),
-        activeLayerId: data.activeLayerId,
-        canvasWidth: data.canvasWidth as 8 | 16 | 32 | 48 | 64 | 128,
-        canvasHeight: data.canvasHeight as 8 | 16 | 32 | 48 | 64 | 128,
-        primaryColor: data.primaryColor,
-        secondaryColor: data.secondaryColor,
-        activePalette: data.activePalette,
-        history: [{ layers: JSON.parse(JSON.stringify(data.layers)), activeLayerId: data.activeLayerId }],
-        historyIndex: 0,
-      });
-    }
-    setSaveStatus("saved");
-    const t = setTimeout(() => { autosaveEnabledRef.current = true; }, 300);
-    return () => clearTimeout(t);
+    Promise.all([loadProject2D(resolvedId), getProjectMeta(resolvedId)]).then(
+      ([data, meta]) => {
+        if (meta) setTitle(meta.title);
+        if (data) {
+          usePixelEditorStore.setState({
+            layers: JSON.parse(JSON.stringify(data.layers)),
+            activeLayerId: data.activeLayerId,
+            canvasWidth: data.canvasWidth as 8 | 16 | 32 | 48 | 64 | 128,
+            canvasHeight: data.canvasHeight as 8 | 16 | 32 | 48 | 64 | 128,
+            primaryColor: data.primaryColor,
+            secondaryColor: data.secondaryColor,
+            activePalette: data.activePalette,
+            history: [
+              {
+                layers: JSON.parse(JSON.stringify(data.layers)),
+                activeLayerId: data.activeLayerId,
+              },
+            ],
+            historyIndex: 0,
+          });
+        }
+        setSaveStatus("saved");
+        setTimeout(() => {
+          autosaveEnabledRef.current = true;
+        }, 300);
+      }
+    );
   }, [resolvedId]);
 
-  const save = useCallback((overrideTitle?: string) => {
-    if (!resolvedId) return;
-    setSaveStatus("saving");
-    const s = usePixelEditorStore.getState();
-    const saveTitle = overrideTitle !== undefined ? overrideTitle : title;
-    if (overrideTitle !== undefined) setTitle(overrideTitle);
-    
-    saveProject2D(
-      resolvedId,
-      {
-        layers: s.layers,
-        activeLayerId: s.activeLayerId,
-        canvasWidth: s.canvasWidth,
-        canvasHeight: s.canvasHeight,
-        primaryColor: s.primaryColor,
-        secondaryColor: s.secondaryColor,
-        activePalette: s.activePalette,
-      },
-      saveTitle
-    );
-    setSaveStatus("saved");
-  }, [resolvedId, title]);
+  const save = useCallback(
+    (overrideTitle?: string) => {
+      if (!resolvedId) return;
+      setSaveStatus("saving");
+      const s = usePixelEditorStore.getState();
+      const saveTitle = overrideTitle !== undefined ? overrideTitle : title;
+      if (overrideTitle !== undefined) setTitle(overrideTitle);
+
+      saveProject2D(
+        resolvedId,
+        {
+          layers: s.layers,
+          activeLayerId: s.activeLayerId,
+          canvasWidth: s.canvasWidth,
+          canvasHeight: s.canvasHeight,
+          primaryColor: s.primaryColor,
+          secondaryColor: s.secondaryColor,
+          activePalette: s.activePalette,
+        },
+        saveTitle
+      ).then(() => setSaveStatus("saved"));
+    },
+    [resolvedId, title]
+  );
 
   useEffect(() => {
     if (!resolvedId || !loadedRef.current) return;
@@ -93,7 +103,8 @@ export function useProjectSave2D(projectId: string) {
         state.activeLayerId === prev.activeLayerId &&
         state.canvasWidth === prev.canvasWidth &&
         state.canvasHeight === prev.canvasHeight
-      ) return;
+      )
+        return;
       setSaveStatus("unsaved");
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => save(), 1500);
@@ -119,6 +130,7 @@ export function useProjectSave2D(projectId: string) {
   return { resolvedId, saveStatus, save, title, setTitle };
 }
 
+// ─── 3D ───────────────────────────────────────────────────────────────────
 export function useProjectSave3D(projectId: string) {
   const router = useRouter();
   const resolvedId = projectId === "new" ? null : projectId;
@@ -132,8 +144,15 @@ export function useProjectSave3D(projectId: string) {
     loadedRef.current = false;
     autosaveEnabledRef.current = false;
     if (projectId === "new") {
-      const meta = createProject("3d");
-      router.replace(`/editor/3d/${meta.id}`);
+      createProject("3d").then((meta) => {
+        // Forward any query params (e.g. voxel_import) through the redirect
+        const currentParams = new URLSearchParams(window.location.search);
+        const voxelKey = currentParams.get("voxel_import");
+        const target = voxelKey
+          ? `/editor/3d/${meta.id}?voxel_import=${voxelKey}`
+          : `/editor/3d/${meta.id}`;
+        router.replace(target);
+      });
     }
   }, [projectId, router]);
 
@@ -141,45 +160,53 @@ export function useProjectSave3D(projectId: string) {
     if (!resolvedId || loadedRef.current) return;
     loadedRef.current = true;
 
-    const data = loadProject3D(resolvedId);
-    const meta = getProjectMeta(resolvedId);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (meta) setTitle(meta.title);
-
-    if (data) {
-      useEditor3DStore.setState({
-        objects: JSON.parse(JSON.stringify(data.objects)),
-        environmentPreset: data.environmentPreset,
-        shadingMode: data.shadingMode,
-        selectedId: data.selectedId,
-        history: [{ objects: JSON.parse(JSON.stringify(data.objects)), selectedId: data.selectedId }],
-        historyIndex: 0,
-      });
-    }
-    setSaveStatus("saved");
-    const t = setTimeout(() => { autosaveEnabledRef.current = true; }, 300);
-    return () => clearTimeout(t);
+    Promise.all([loadProject3D(resolvedId), getProjectMeta(resolvedId)]).then(
+      ([data, meta]) => {
+        if (meta) setTitle(meta.title);
+        if (data) {
+          useEditor3DStore.setState({
+            objects: JSON.parse(JSON.stringify(data.objects)),
+            environmentPreset: data.environmentPreset,
+            shadingMode: data.shadingMode,
+            selectedId: data.selectedId,
+            history: [
+              {
+                objects: JSON.parse(JSON.stringify(data.objects)),
+                selectedId: data.selectedId,
+              },
+            ],
+            historyIndex: 0,
+          });
+        }
+        setSaveStatus("saved");
+        setTimeout(() => {
+          autosaveEnabledRef.current = true;
+        }, 300);
+      }
+    );
   }, [resolvedId]);
 
-  const save = useCallback((overrideTitle?: string) => {
-    if (!resolvedId) return;
-    setSaveStatus("saving");
-    const s = useEditor3DStore.getState();
-    const saveTitle = overrideTitle !== undefined ? overrideTitle : title;
-    if (overrideTitle !== undefined) setTitle(overrideTitle);
-    
-    saveProject3D(
-      resolvedId,
-      {
-        objects: JSON.parse(JSON.stringify(s.objects)),
-        environmentPreset: s.environmentPreset,
-        shadingMode: s.shadingMode,
-        selectedId: s.selectedId,
-      },
-      saveTitle
-    );
-    setSaveStatus("saved");
-  }, [resolvedId, title]);
+  const save = useCallback(
+    (overrideTitle?: string) => {
+      if (!resolvedId) return;
+      setSaveStatus("saving");
+      const s = useEditor3DStore.getState();
+      const saveTitle = overrideTitle !== undefined ? overrideTitle : title;
+      if (overrideTitle !== undefined) setTitle(overrideTitle);
+
+      saveProject3D(
+        resolvedId,
+        {
+          objects: JSON.parse(JSON.stringify(s.objects)),
+          environmentPreset: s.environmentPreset,
+          shadingMode: s.shadingMode,
+          selectedId: s.selectedId,
+        },
+        saveTitle
+      ).then(() => setSaveStatus("saved"));
+    },
+    [resolvedId, title]
+  );
 
   useEffect(() => {
     if (!resolvedId || !loadedRef.current) return;

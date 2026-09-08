@@ -20,53 +20,50 @@ import { useState } from "react";
 import { Menu } from "lucide-react";
 
 export function Editor3DClient({ projectId }: { projectId: string }) {
-  const { showLeftPanel, showRightPanel, showNPanel, showTimeline, setObjects, objects, commitHistory } = useEditor3DStore();
+  const { showLeftPanel, showRightPanel, showNPanel, showTimeline, setObjects, commitHistory } = useEditor3DStore();
   const { resolvedId, saveStatus, save, title } = useProjectSave3D(projectId);
   const searchParams = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const importKey = searchParams.get('voxel_import');
-    if (importKey) {
-      const data = localStorage.getItem(importKey);
-      if (data) {
-        try {
-          const voxels: {x:number, y:number, z:number, color:string}[] = JSON.parse(data);
-          const newObjects: SceneObject[] = voxels.map((v, i) => ({
-            id: `voxel_${Date.now()}_${i}`,
-            name: `Voxel ${i}`,
-            type: 'cube',
-            objectType: 'mesh',
-            position: [(v.x - 16) * 0.5, (v.y) * 0.5, 0],
-            rotation: [0, 0, 0],
-            scale: [0.5, 0.5, 0.5],
-            color: v.color,
-            roughness: 0.8,
-            metalness: 0,
-            visible: true,
-            hidden: false,
-            renderVisible: true,
-            locked: false,
-            smoothShading: false,
-            modifiers: [],
-            keyframes: [],
-          }));
-          
-          commitHistory();
-          if (objects.length === 1 && objects[0].type === 'cube' && objects[0].position[0] === 0) {
-            setObjects(newObjects);
-          } else {
-            setObjects([...objects, ...newObjects]);
-          }
-          
-          localStorage.removeItem(importKey);
-          window.history.replaceState({}, '', `/editor/3d/${projectId}`);
-        } catch (e) {
-          console.error("Failed to parse voxel import", e);
-        }
-      }
+    if (!importKey) return;
+
+    const data = localStorage.getItem(importKey);
+    if (!data) return;
+
+    try {
+      const voxels: {x:number, y:number, z:number, color:string}[] = JSON.parse(data);
+      const newObjects: SceneObject[] = voxels.map((v, i) => ({
+        id: `voxel_${Date.now()}_${i}`,
+        name: `Voxel ${i}`,
+        type: 'cube' as const,
+        objectType: 'mesh' as const,
+        position: [(v.x - 16) * 0.5, (v.y) * 0.5, 0] as [number, number, number],
+        rotation: [0, 0, 0] as [number, number, number],
+        scale: [0.5, 0.5, 0.5] as [number, number, number],
+        color: v.color,
+        roughness: 0.8,
+        metalness: 0,
+        visible: true,
+        hidden: false,
+        renderVisible: true,
+        locked: false,
+        smoothShading: false,
+        modifiers: [],
+        keyframes: [],
+      }));
+
+      commitHistory();
+      setObjects(newObjects);
+      localStorage.removeItem(importKey);
+      // Clean the param from the URL without re-render
+      window.history.replaceState({}, '', window.location.pathname);
+    } catch (e) {
+      console.error("Failed to parse voxel import", e);
     }
-  }, [searchParams, projectId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   if (!resolvedId) {
     return (

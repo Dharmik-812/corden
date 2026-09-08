@@ -102,7 +102,7 @@ export function AnimationTimeline() {
         workers: 2, quality: 10,
         width: canvasWidth * scale, height: canvasHeight * scale,
         workerScript: "/gif.worker.js",
-        transparent: 0xFF00FF // Magenta as chroma key for transparency
+        transparent: "0xFF00FF" // Magenta as chroma key for transparency
       });
       for (const frame of exportFrames) {
         const off = document.createElement("canvas");

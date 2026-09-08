@@ -42,19 +42,19 @@ export default function ProfilePage() {
     );
   }
 
-  const handleSignOut = () => {
-    signOut();
+  const handleSignOut = async () => {
+    await signOut();
     router.push("/");
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setError("");
     if (!displayName.trim() || !email.trim()) {
       setError("Name and email are required.");
       return;
     }
     
-    const res = updateProfile({ display_name: displayName, email });
+    const res = await updateProfile({ display_name: displayName, email });
     if (res.error) {
       setError(res.error);
     } else {

@@ -8,6 +8,11 @@
   flex-direction: column;
   overflow: hidden;
   background: var(--bg-main);
+  --glass-bg: rgba(6, 7, 10, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.03);
+  --neon-accent: #6366f1;
+  --neon-glow: rgba(99, 102, 241, 0.4);
 }
 
 .workspace {
@@ -24,12 +29,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 48px;
-  background: rgba(10, 12, 18, 0.6);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-right: 1px solid var(--border-primary);
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+  width: 56px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border-right: 1px solid var(--glass-border);
+  box-shadow: inset -1px 0 0 var(--glass-highlight), 4px 0 32px rgba(0, 0, 0, 0.4);
   z-index: 40;
 }
 
@@ -45,16 +50,18 @@
 /* ── N-Panel ─────────────────────────────────────────────────── */
 .nPanelContainer {
   position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 256px;
-  background: rgba(15, 17, 26, 0.85);
-  backdrop-filter: blur(24px);
-  border-left: 1px solid var(--border-primary);
+  right: 16px;
+  top: 16px;
+  bottom: 16px;
+  width: 260px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
   overflow-y: auto;
   z-index: 35;
-  box-shadow: -4px 0 32px rgba(0, 0, 0, 0.3);
+  box-shadow: inset 1px 1px 0 var(--glass-highlight), -4px 0 48px rgba(0, 0, 0, 0.5);
 }
 
 /* ── Right Sidebar ────────────────────────────────────────────── */
@@ -63,27 +70,29 @@
   flex-shrink: 0;
   width: 320px;
   min-width: 320px;
-  background: rgba(10, 12, 18, 0.7);
-  backdrop-filter: blur(32px);
-  -webkit-backdrop-filter: blur(32px);
-  border-left: 1px solid var(--border-primary);
+  background: var(--glass-bg);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border-left: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   z-index: 40;
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s;
-  box-shadow: -4px 0 32px rgba(0,0,0,0.25);
+  box-shadow: inset 1px 0 0 var(--glass-highlight), -8px 0 48px rgba(0, 0, 0, 0.5);
 }
 
 /* ── Bottom Timeline ──────────────────────────────────────────── */
 .timelineContainer {
-  height: 160px;
+  height: 180px;
   flex-shrink: 0;
-  background: rgba(10, 12, 18, 0.8);
-  border-top: 1px solid var(--border-primary);
-  backdrop-filter: blur(16px);
+  background: var(--glass-bg);
+  border-top: 1px solid var(--glass-border);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
   z-index: 40;
   transition: height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 -8px 48px rgba(0, 0, 0, 0.4);
 }
 
 /* ── Mobile toggle bar ───────────────────────────────────────── */
@@ -98,17 +107,17 @@
 
 .mobileToggleBtn {
   background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(16px);
-  border: 1px solid var(--border-primary);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
   color: var(--text-primary);
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: var(--shadow-panel);
+  box-shadow: inset 1px 1px 0 var(--glass-highlight), 0 4px 12px rgba(0,0,0,0.3);
   transition: all var(--transition-fast);
 }
 
@@ -123,8 +132,8 @@
   display: none;
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
   z-index: 45;
   transition: opacity 0.3s;
 }
@@ -150,16 +159,15 @@
   .toolbarContainer {
     flex-direction: row;
     width: 100%;
-    height: 48px;
+    height: 56px;
     overflow-x: auto;
     overflow-y: hidden;
     padding: 0 12px;
     border-right: none;
-    border-top: 1px solid var(--border-primary);
+    border-top: 1px solid var(--glass-border);
     justify-content: flex-start;
-    background: rgba(10, 12, 18, 0.95);
+    background: rgba(6, 7, 10, 0.95);
     order: 2;
-    /* Hide scrollbar for sleeker look */
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
@@ -172,13 +180,12 @@
     flex: 1;
   }
 
-  /* Timeline collapses or stacks */
   .timelineContainer {
-    display: none; /* Hide timeline completely on very small screens for now to save space */
+    display: none; 
   }
 
   .nPanelContainer {
-    display: none; /* Combine N-Panel or hide it */
+    display: none;
   }
 
   .sidebarContainer {
@@ -189,8 +196,8 @@
     transform: translateX(105%);
     width: 320px;
     min-width: 320px;
-    background: rgba(15, 17, 26, 0.95);
-    border-left: 1px solid var(--border-secondary);
+    background: rgba(6, 7, 10, 0.95);
+    border-left: 1px solid var(--glass-border);
     box-shadow: -12px 0 48px rgba(0, 0, 0, 0.8);
     z-index: 50;
   }

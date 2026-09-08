@@ -40,6 +40,24 @@
   -webkit-backdrop-filter: blur(24px);
   border-right: 1px solid var(--border-primary);
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+  overflow-y: auto;
+  overflow-x: visible;
+  /* Thin, subtle scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+.toolbarContainer::-webkit-scrollbar {
+  width: 4px;
+}
+.toolbarContainer::-webkit-scrollbar-track {
+  background: transparent;
+}
+.toolbarContainer::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 4px;
+}
+.toolbarContainer::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.22);
 }
 
 /* ── Right Sidebar ────────────────────────────────────────────── */

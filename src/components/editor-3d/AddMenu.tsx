@@ -1,8 +1,8 @@
 "use client";
 
 import { useEditor3DStore } from "@/stores/editor3d-store";
-import { Box, Circle, Cylinder, Cone, Square, Lightbulb, Sun, Target, Subtitles, Camera, Triangle } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Box, Circle, Cylinder, Cone, Square, Lightbulb, Sun, Target, Camera, Triangle } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const MENU_WIDTH = 192;

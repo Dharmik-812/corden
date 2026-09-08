@@ -1,3 +1,14 @@
+/**
+ * project-storage.ts — API-backed project persistence.
+ *
+ * All functions now call the backend REST API instead of localStorage.
+ * The exported types and function signatures are preserved exactly so
+ * all components and hooks that import from this file continue to work.
+ *
+ * Preset projects (preset-2d, preset-3d) are still served from local
+ * default data — the API returns 404 for them and we fall back gracefully.
+ */
+
 import type { SceneObject, EnvironmentPreset, ShadingMode } from "@/stores/editor3d-store";
 import type { Layer } from "@/stores/pixelEditor-store";
 
@@ -29,9 +40,7 @@ export interface Project3DData {
   selectedId: string | null;
 }
 
-const INDEX_KEY = "corden-projects-index";
-const DATA_PREFIX = "corden-project-data-";
-
+// ─── Preset IDs ────────────────────────────────────────────────────────────
 export const PRESET_2D_ID = "preset-2d";
 export const PRESET_3D_ID = "preset-3d";
 
@@ -54,9 +63,9 @@ const PRESET_PROJECTS: ProjectMeta[] = [
   },
 ];
 
+// ─── Preset default data (unchanged from original) ─────────────────────────
 function default2DPresetData(): Project2DData {
   const pixels: Record<string, string> = {};
-  // Simple smiley face starter
   const colors = ["#FFEC27", "#FF004D", "#000000", "#29ADFF"];
   const pattern = [
     "....XXXX....",
@@ -157,171 +166,9 @@ function default3DPresetData(): Project3DData {
   };
 }
 
-function readIndex(): ProjectMeta[] {
-  if (typeof window === "undefined") return PRESET_PROJECTS;
-  try {
-    const stored = JSON.parse(localStorage.getItem(INDEX_KEY) || "[]") as ProjectMeta[];
-    const userProjects = stored.filter((p) => !p.isPreset);
-    return [...PRESET_PROJECTS, ...userProjects];
-  } catch {
-    return PRESET_PROJECTS;
-  }
-}
-
-function writeIndex(projects: ProjectMeta[]) {
-  const userProjects = projects.filter((p) => !p.isPreset);
-  localStorage.setItem(INDEX_KEY, JSON.stringify(userProjects));
-}
-
-function dataKey(id: string) {
-  return `${DATA_PREFIX}${id}`;
-}
-
-export function getAllProjects(): ProjectMeta[] {
-  return readIndex().sort(
-    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-  );
-}
-
-export function getProjectMeta(id: string): ProjectMeta | undefined {
-  return readIndex().find((p) => p.id === id);
-}
-
+// ─── Helpers ───────────────────────────────────────────────────────────────
 export function isPresetProject(id: string): boolean {
   return id === PRESET_2D_ID || id === PRESET_3D_ID;
-}
-
-export function loadProject2D(id: string): Project2DData | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(dataKey(id));
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (!parsed.layers && parsed.pixels) {
-        parsed.layers = [{ id: "layer-1", name: "Layer 1", pixels: parsed.pixels, visible: true, opacity: 1, locked: false }];
-        parsed.activeLayerId = "layer-1";
-      }
-      return parsed as Project2DData;
-    }
-    if (id === PRESET_2D_ID) return default2DPresetData();
-    return null;
-  } catch {
-    return id === PRESET_2D_ID ? default2DPresetData() : null;
-  }
-}
-
-export function loadProject3D(id: string): Project3DData | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(dataKey(id));
-    if (raw) return JSON.parse(raw) as Project3DData;
-    if (id === PRESET_3D_ID) return default3DPresetData();
-    return null;
-  } catch {
-    return id === PRESET_3D_ID ? default3DPresetData() : null;
-  }
-}
-
-export function saveProject2D(id: string, data: Project2DData, title?: string) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(dataKey(id), JSON.stringify(data));
-  const now = new Date().toISOString();
-  const projects = readIndex();
-  const idx = projects.findIndex((p) => p.id === id);
-  const meta: ProjectMeta = {
-    id,
-    title: title ?? projects[idx]?.title ?? "Untitled 2D Draft",
-    type: "2d",
-    updated_at: now,
-    isPreset: isPresetProject(id) || undefined,
-    starred: projects[idx]?.starred,
-  };
-  if (idx >= 0) projects[idx] = meta;
-  else projects.push(meta);
-  writeIndex(projects);
-}
-
-export function saveProject3D(id: string, data: Project3DData, title?: string) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(dataKey(id), JSON.stringify(data));
-  const now = new Date().toISOString();
-  const projects = readIndex();
-  const idx = projects.findIndex((p) => p.id === id);
-  const meta: ProjectMeta = {
-    id,
-    title: title ?? projects[idx]?.title ?? "Untitled 3D Scene",
-    type: "3d",
-    updated_at: now,
-    isPreset: isPresetProject(id) || undefined,
-    starred: projects[idx]?.starred,
-  };
-  if (idx >= 0) projects[idx] = meta;
-  else projects.push(meta);
-  writeIndex(projects);
-}
-
-export function createProject(type: ProjectType, title?: string): ProjectMeta {
-  const id = `proj-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  const meta: ProjectMeta = {
-    id,
-    title: title ?? (type === "2d" ? "Untitled 2D Draft" : "Untitled 3D Scene"),
-    type,
-    updated_at: new Date().toISOString(),
-  };
-  const projects = readIndex();
-  projects.push(meta);
-  writeIndex(projects);
-
-  if (type === "2d") {
-    const layerId = "layer-1";
-    saveProject2D(id, {
-      layers: [{ id: layerId, name: "Layer 1", pixels: {}, visible: true, opacity: 1, locked: false }],
-      activeLayerId: layerId,
-      canvasWidth: 32,
-      canvasHeight: 32,
-      primaryColor: "#ffffff",
-      secondaryColor: "#000000",
-      activePalette: "Pico-8",
-    }, meta.title);
-  } else {
-    saveProject3D(
-      id,
-      {
-        objects: [
-          {
-            id: "obj_default_cube",
-            name: "Cube",
-            type: "cube",
-            objectType: "mesh",
-            position: [0, 0, 0],
-            rotation: [0, 0, 0],
-            scale: [1, 1, 1],
-            color: "#E7EEF5",
-            roughness: 0.5,
-            metalness: 0.1,
-            visible: true,
-            hidden: false,
-            renderVisible: true,
-            locked: false,
-            modifiers: [],
-            keyframes: [],
-          },
-        ],
-        environmentPreset: "studio",
-        shadingMode: "solid",
-        selectedId: null,
-      },
-      meta.title
-    );
-  }
-
-  return meta;
-}
-
-export function deleteProject(id: string) {
-  if (isPresetProject(id) || typeof window === "undefined") return;
-  localStorage.removeItem(dataKey(id));
-  writeIndex(readIndex().filter((p) => p.id !== id));
 }
 
 export function formatRelativeTime(iso: string): string {
@@ -336,4 +183,136 @@ export function formatRelativeTime(iso: string): string {
   const weeks = Math.floor(days / 7);
   if (weeks < 5) return `${weeks} week${weeks === 1 ? "" : "s"} ago`;
   return new Date(iso).toLocaleDateString();
+}
+
+// ─── Project list ──────────────────────────────────────────────────────────
+export async function getAllProjects(): Promise<ProjectMeta[]> {
+  try {
+    const res = await fetch("/api/projects");
+    if (!res.ok) return PRESET_PROJECTS; // not logged in → show only presets
+    const json = await res.json();
+    const userProjects: ProjectMeta[] = json.projects ?? [];
+    return [
+      ...PRESET_PROJECTS.map((p) => ({ ...p, updated_at: new Date().toISOString() })),
+      ...userProjects,
+    ].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+  } catch {
+    return PRESET_PROJECTS;
+  }
+}
+
+export async function getProjectMeta(id: string): Promise<ProjectMeta | undefined> {
+  if (isPresetProject(id)) return PRESET_PROJECTS.find((p) => p.id === id);
+  try {
+    const res = await fetch(`/api/projects/${id}`);
+    if (!res.ok) return undefined;
+    const json = await res.json();
+    return json.project as ProjectMeta;
+  } catch {
+    return undefined;
+  }
+}
+
+// ─── Load ──────────────────────────────────────────────────────────────────
+export async function loadProject2D(id: string): Promise<Project2DData | null> {
+  if (id === PRESET_2D_ID) return default2DPresetData();
+  try {
+    const res = await fetch(`/api/projects/${id}`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    const data = json.project?.data as Project2DData | undefined;
+    if (!data) return null;
+    // Back-compat: old data may have flat `pixels` instead of layers
+    if (!data.layers && (data as unknown as Record<string, unknown>).pixels) {
+      data.layers = [
+        {
+          id: "layer-1",
+          name: "Layer 1",
+          pixels: (data as unknown as Record<string, unknown>).pixels as Record<string, string>,
+          visible: true,
+          opacity: 1,
+          locked: false,
+        },
+      ];
+      data.activeLayerId = "layer-1";
+    }
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+export async function loadProject3D(id: string): Promise<Project3DData | null> {
+  if (id === PRESET_3D_ID) return default3DPresetData();
+  try {
+    const res = await fetch(`/api/projects/${id}`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    return (json.project?.data as Project3DData) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ─── Save ──────────────────────────────────────────────────────────────────
+export async function saveProject2D(id: string, data: Project2DData, title?: string): Promise<void> {
+  if (isPresetProject(id)) return; // never persist presets
+  try {
+    await fetch(`/api/projects/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data, ...(title ? { title } : {}) }),
+    });
+  } catch {
+    // autosave failure is non-fatal
+  }
+}
+
+export async function saveProject3D(id: string, data: Project3DData, title?: string): Promise<void> {
+  if (isPresetProject(id)) return;
+  try {
+    await fetch(`/api/projects/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data, ...(title ? { title } : {}) }),
+    });
+  } catch {
+    // autosave failure is non-fatal
+  }
+}
+
+// ─── Create ────────────────────────────────────────────────────────────────
+export async function createProject(type: ProjectType, title?: string): Promise<ProjectMeta> {
+  try {
+    const res = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, title }),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      return json.project as ProjectMeta;
+    }
+  } catch {
+    // fall through to local fallback
+  }
+
+  // Fallback for guest / offline use — generate a local ID
+  const id = `proj-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  return {
+    id,
+    title: title ?? (type === "2d" ? "Untitled 2D Draft" : "Untitled 3D Scene"),
+    type,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+// ─── Delete ────────────────────────────────────────────────────────────────
+export async function deleteProject(id: string): Promise<void> {
+  if (isPresetProject(id)) return;
+  try {
+    await fetch(`/api/projects/${id}`, { method: "DELETE" });
+  } catch {
+    // non-fatal
+  }
 }

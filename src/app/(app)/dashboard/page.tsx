@@ -191,14 +191,13 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<ProjectMeta[]>([]);
 
   useEffect(() => {
-    setProjects(getAllProjects());
+    getAllProjects().then(setProjects);
   }, []);
 
   const handleDelete = (id: string) => {
     if (isPresetProject(id)) return;
     if (!confirm("Delete this project? This cannot be undone.")) return;
-    deleteProject(id);
-    setProjects(getAllProjects());
+    deleteProject(id).then(() => getAllProjects().then(setProjects));
   };
 
   const filtered = projects.filter((p) => {

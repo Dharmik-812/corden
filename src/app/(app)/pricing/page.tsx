@@ -118,17 +118,16 @@ export default function PricingPage() {
 
   const isPro = user?.membership_tier === "pro";
 
-  const handleUpgrade = () => {
+  const handleUpgrade = async () => {
     if (!user) {
       router.push("/signup");
       return;
     }
     setUpgrading(true);
-    setTimeout(() => {
-      upgradeToPro();
-      setUpgrading(false);
-      setUpgraded(true);
-    }, 1500);
+    await new Promise((r) => setTimeout(r, 1500));
+    await upgradeToPro();
+    setUpgrading(false);
+    setUpgraded(true);
   };
 
   return (
