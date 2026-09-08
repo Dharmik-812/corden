@@ -2,7 +2,7 @@
  * Next.js Middleware — session-based route protection.
  *
  * Protected routes: /dashboard, /profile, /editor/**
- * Public routes:    /, /login, /signup, /pricing, /api/auth/**, _next/static, etc.
+ * Public routes:    /, /login, /signup, /api/auth/**, _next/static, etc.
  *
  * Guest users can still open the preset editor routes because the editor
  * components fall back to local preset data when the API returns 404.

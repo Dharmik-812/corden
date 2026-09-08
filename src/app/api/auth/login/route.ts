@@ -10,14 +10,19 @@ export async function POST(request: Request) {
       return Response.json({ error: "Email and password are required." }, { status: 400 });
     }
 
+    const cleanEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+    const cleanPassword = typeof password === "string" ? password : "";
+
     const db = getDb();
-    const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email) as DbUser | undefined;
+    const user = db
+      .prepare("SELECT * FROM users WHERE LOWER(TRIM(email)) = ?")
+      .get(cleanEmail) as DbUser | undefined;
 
     if (!user) {
       return Response.json({ error: "No account found with this email." }, { status: 401 });
     }
 
-    const valid = await bcrypt.compare(password, user.password_hash);
+    const valid = await bcrypt.compare(cleanPassword, user.password_hash);
     if (!valid) {
       return Response.json({ error: "Invalid password." }, { status: 401 });
     }

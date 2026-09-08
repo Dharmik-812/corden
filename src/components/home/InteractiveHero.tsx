@@ -8,7 +8,10 @@ import * as THREE from "three";
 
 /* ─── 3D Floating Ambient Shape (from old hero, preserved) ─── */
 function FloatingShape({
-  position, geometry, color, speed,
+  position,
+  geometry,
+  color,
+  speed,
 }: {
   position: [number, number, number];
   geometry: string;
@@ -52,22 +55,26 @@ function FloatingShape({
 
 /* ─── 3D High-quality Scene ─── */
 function Scene3D() {
-  const mainRef   = useRef<THREE.Mesh>(null);
-  const wireRef   = useRef<THREE.Mesh>(null);
-  const innerRef  = useRef<THREE.Mesh>(null);
-  const ringRef   = useRef<THREE.Group>(null);
+  const mainRef = useRef<THREE.Mesh>(null);
+  const wireRef = useRef<THREE.Mesh>(null);
+  const innerRef = useRef<THREE.Mesh>(null);
+  const ringRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
-    const t  = state.clock.elapsedTime;
+    const t = state.clock.elapsedTime;
     const px = (state.pointer.x * Math.PI) / 9;
     const py = (state.pointer.y * Math.PI) / 9;
 
     if (mainRef.current) {
-      mainRef.current.rotation.x += (py * 0.5 - mainRef.current.rotation.x) * 0.04;
-      mainRef.current.rotation.y += (px * 0.5 + t * 0.06 - mainRef.current.rotation.y) * 0.02;
+      mainRef.current.rotation.x +=
+        (py * 0.5 - mainRef.current.rotation.x) * 0.04;
+      mainRef.current.rotation.y +=
+        (px * 0.5 + t * 0.06 - mainRef.current.rotation.y) * 0.02;
     }
     if (wireRef.current) {
-      wireRef.current.rotation.copy(mainRef.current?.rotation ?? new THREE.Euler());
+      wireRef.current.rotation.copy(
+        mainRef.current?.rotation ?? new THREE.Euler(),
+      );
     }
     if (innerRef.current) {
       innerRef.current.rotation.x = t * 0.5;
@@ -83,10 +90,10 @@ function Scene3D() {
     <>
       {/* Lighting — same family as the floating shapes */}
       <ambientLight intensity={0.2} />
-      <directionalLight position={[5, 7, 5]}  intensity={1.8} color="#c8deff" />
-      <pointLight      position={[-6, 3, 4]}  intensity={2.2} color="#4a7dc4" />
-      <pointLight      position={[4, -5, -3]} intensity={1.2} color="#8E54E9" />
-      <pointLight      position={[0, 6, -6]}  intensity={1.0} color="#ffffff" />
+      <directionalLight position={[5, 7, 5]} intensity={1.8} color="#c8deff" />
+      <pointLight position={[-6, 3, 4]} intensity={2.2} color="#4a7dc4" />
+      <pointLight position={[4, -5, -3]} intensity={1.2} color="#8E54E9" />
+      <pointLight position={[0, 6, -6]} intensity={1.0} color="#ffffff" />
 
       {/* ── Central Icosahedron — dark metal, matching the satellites ── */}
       <Float speed={1.2} rotationIntensity={0} floatIntensity={0.3}>
@@ -154,10 +161,30 @@ function Scene3D() {
       </group>
 
       {/* ── Same floating wireframe satellites from the original ── */}
-      <FloatingShape position={[3.2, 1.6, -2]}   geometry="octahedron"  color="#8E54E9" speed={1.1} />
-      <FloatingShape position={[-2.6, -2, -2.5]} geometry="torus"       color="#4A90E2" speed={0.75} />
-      <FloatingShape position={[2, -2.6, 1]}     geometry="box"         color="#34D399" speed={1.3} />
-      <FloatingShape position={[-3.2, 1.4, 0.5]} geometry="icosahedron" color="#F87171" speed={0.95} />
+      <FloatingShape
+        position={[3.2, 1.6, -2]}
+        geometry="octahedron"
+        color="#8E54E9"
+        speed={1.1}
+      />
+      <FloatingShape
+        position={[-2.6, -2, -2.5]}
+        geometry="torus"
+        color="#4A90E2"
+        speed={0.75}
+      />
+      <FloatingShape
+        position={[2, -2.6, 1]}
+        geometry="box"
+        color="#34D399"
+        speed={1.3}
+      />
+      <FloatingShape
+        position={[-3.2, 1.4, 0.5]}
+        geometry="icosahedron"
+        color="#F87171"
+        speed={0.95}
+      />
 
       <Environment preset="night" />
     </>
@@ -167,11 +194,19 @@ function Scene3D() {
 /* ─── 2D Combined Canvas: Blueprint grid + mouse trail + crosshair ─── */
 function Interactive2DCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouseRef  = useRef({ x: 0, y: 0, targetX: 0, targetY: 0, active: false });
-  const pointsRef = useRef<{ x: number; y: number; age: number; vx: number; vy: number }[]>([]);
-  const timeRef   = useRef(0);
-  const rafRef    = useRef<number>(0);
-  const drawRef   = useRef<FrameRequestCallback>(() => {});
+  const mouseRef = useRef({
+    x: 0,
+    y: 0,
+    targetX: 0,
+    targetY: 0,
+    active: false,
+  });
+  const pointsRef = useRef<
+    { x: number; y: number; age: number; vx: number; vy: number }[]
+  >([]);
+  const timeRef = useRef(0);
+  const rafRef = useRef<number>(0);
+  const drawRef = useRef<FrameRequestCallback>(() => {});
 
   function draw() {
     const canvas = canvasRef.current;
@@ -183,8 +218,10 @@ function Interactive2DCanvas() {
     const H = canvas.offsetHeight;
 
     // Smooth mouse
-    mouseRef.current.x += (mouseRef.current.targetX - mouseRef.current.x) * 0.12;
-    mouseRef.current.y += (mouseRef.current.targetY - mouseRef.current.y) * 0.12;
+    mouseRef.current.x +=
+      (mouseRef.current.targetX - mouseRef.current.x) * 0.12;
+    mouseRef.current.y +=
+      (mouseRef.current.targetY - mouseRef.current.y) * 0.12;
     timeRef.current += 0.008;
     const t = timeRef.current;
 
@@ -194,12 +231,21 @@ function Interactive2DCanvas() {
 
     const gridSize = 40;
     // Parallax offset from mouse
-    const px = mouseRef.current.active ? (mouseRef.current.x / W - 0.5) : 0;
-    const py = mouseRef.current.active ? (mouseRef.current.y / H - 0.5) : 0;
-    const ox = ((mouseRef.current.x * -0.035) % gridSize + gridSize) % gridSize;
-    const oy = ((mouseRef.current.y * -0.035) % gridSize + gridSize) % gridSize;
+    const px = mouseRef.current.active ? mouseRef.current.x / W - 0.5 : 0;
+    const py = mouseRef.current.active ? mouseRef.current.y / H - 0.5 : 0;
+    const ox =
+      (((mouseRef.current.x * -0.035) % gridSize) + gridSize) % gridSize;
+    const oy =
+      (((mouseRef.current.y * -0.035) % gridSize) + gridSize) % gridSize;
 
-    const ambientGlow = ctx.createRadialGradient(W * 0.68, H * 0.48, 0, W * 0.68, H * 0.48, Math.max(W, H) * 0.48);
+    const ambientGlow = ctx.createRadialGradient(
+      W * 0.68,
+      H * 0.48,
+      0,
+      W * 0.68,
+      H * 0.48,
+      Math.max(W, H) * 0.48,
+    );
     ambientGlow.addColorStop(0, "rgba(74, 125, 196, 0.45)");
     ambientGlow.addColorStop(0.35, "rgba(142, 84, 233, 0.2)");
     ambientGlow.addColorStop(1, "rgba(6, 8, 13, 0)");
@@ -210,20 +256,32 @@ function Interactive2DCanvas() {
     ctx.strokeStyle = "rgba(71, 114, 179, 0.15)";
     ctx.lineWidth = 0.5;
     for (let x = ox; x < W; x += gridSize) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H);
+      ctx.stroke();
     }
     for (let y = oy; y < H; y += gridSize) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
     }
 
     // ── Heavier major grid ──
     ctx.strokeStyle = "rgba(142, 168, 216, 0.3)";
     ctx.lineWidth = 1;
     for (let x = ox; x < W; x += gridSize * 5) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H);
+      ctx.stroke();
     }
     for (let y = oy; y < H; y += gridSize * 5) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
     }
 
     const cx = W * 0.68 + px * 36;
@@ -250,12 +308,26 @@ function Interactive2DCanvas() {
     };
 
     const vertices = [
-      project(-1, 0, 0.62), project(1, 0, 0.62), project(0, -1, -0.62),
-      project(0, 1, -0.62), project(0.62, -0.62, 0), project(-0.62, 0.62, 0),
+      project(-1, 0, 0.62),
+      project(1, 0, 0.62),
+      project(0, -1, -0.62),
+      project(0, 1, -0.62),
+      project(0.62, -0.62, 0),
+      project(-0.62, 0.62, 0),
     ];
     const edges = [
-      [0, 2], [0, 3], [0, 4], [0, 5], [1, 2], [1, 3],
-      [1, 4], [1, 5], [2, 4], [2, 5], [3, 4], [3, 5],
+      [0, 2],
+      [0, 3],
+      [0, 4],
+      [0, 5],
+      [1, 2],
+      [1, 3],
+      [1, 4],
+      [1, 5],
+      [2, 4],
+      [2, 5],
+      [3, 4],
+      [3, 5],
     ] as const;
 
     // ── 2D projection of the 3D hero core ──
@@ -263,9 +335,27 @@ function Interactive2DCanvas() {
     ctx.translate(cx, cy);
     ctx.rotate(Math.sin(t * 0.25) * 0.08 + px * 0.08);
     for (const ring of [
-      { rx: baseScale * 1.85, ry: baseScale * 0.48, color: "rgba(74, 125, 196, 0.32)", width: 1.2, dash: [] },
-      { rx: baseScale * 2.2, ry: baseScale * 0.58, color: "rgba(255, 255, 255, 0.12)", width: 0.8, dash: [10, 16] },
-      { rx: baseScale * 2.55, ry: baseScale * 0.68, color: "rgba(142, 84, 233, 0.18)", width: 0.8, dash: [2, 12] },
+      {
+        rx: baseScale * 1.85,
+        ry: baseScale * 0.48,
+        color: "rgba(74, 125, 196, 0.32)",
+        width: 1.2,
+        dash: [],
+      },
+      {
+        rx: baseScale * 2.2,
+        ry: baseScale * 0.58,
+        color: "rgba(255, 255, 255, 0.12)",
+        width: 0.8,
+        dash: [10, 16],
+      },
+      {
+        rx: baseScale * 2.55,
+        ry: baseScale * 0.68,
+        color: "rgba(142, 84, 233, 0.18)",
+        width: 0.8,
+        dash: [2, 12],
+      },
     ]) {
       ctx.save();
       ctx.rotate(t * 0.22 + ring.rx * 0.001);
@@ -279,7 +369,14 @@ function Interactive2DCanvas() {
     }
     ctx.restore();
 
-    const coreGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, baseScale * 1.45);
+    const coreGlow = ctx.createRadialGradient(
+      cx,
+      cy,
+      0,
+      cx,
+      cy,
+      baseScale * 1.45,
+    );
     coreGlow.addColorStop(0, "rgba(74, 125, 196, 0.32)");
     coreGlow.addColorStop(0.45, "rgba(26, 30, 46, 0.5)");
     coreGlow.addColorStop(1, "rgba(26, 30, 46, 0)");
@@ -314,17 +411,27 @@ function Interactive2DCanvas() {
     ctx.stroke();
 
     vertices.forEach((v, i) => {
-      const nodeGlow = i % 2 === 0 ? "rgba(74, 144, 226, 0.95)" : "rgba(142, 84, 233, 0.85)";
+      const nodeGlow =
+        i % 2 === 0 ? "rgba(74, 144, 226, 0.95)" : "rgba(142, 84, 233, 0.85)";
       ctx.fillStyle = nodeGlow;
       ctx.beginPath();
       ctx.arc(v.x, v.y, 3.2, 0, Math.PI * 2);
       ctx.fill();
     });
 
-    const drawSatellite = (phase: number, radius: number, size: number, color: string, sides: number) => {
+    const drawSatellite = (
+      phase: number,
+      radius: number,
+      size: number,
+      color: string,
+      sides: number,
+    ) => {
       const angle = t * 0.7 + phase + px * 0.45;
       const sx = cx + Math.cos(angle) * radius + Math.sin(t + phase) * 8;
-      const sy = cy + Math.sin(angle * 0.85) * radius * 0.44 + Math.cos(t * 0.7 + phase) * 8;
+      const sy =
+        cy +
+        Math.sin(angle * 0.85) * radius * 0.44 +
+        Math.cos(t * 0.7 + phase) * 8;
 
       ctx.save();
       ctx.translate(sx, sy);
@@ -357,9 +464,17 @@ function Interactive2DCanvas() {
     drawSatellite(5.2, baseScale * 2.65, 17, "rgba(74, 144, 226, 0.78)", 8);
 
     // ── Ambient schematic panels, now orbiting the central projection ──
-    const drawBlueprint = (cxPanel: number, cyPanel: number, w: number, h: number, phase: number) => {
-      const bx = cxPanel + Math.sin(t * 0.4 + phase) * 10 - mouseRef.current.x * 0.012;
-      const by = cyPanel + Math.cos(t * 0.3 + phase) * 10 - mouseRef.current.y * 0.012;
+    const drawBlueprint = (
+      cxPanel: number,
+      cyPanel: number,
+      w: number,
+      h: number,
+      phase: number,
+    ) => {
+      const bx =
+        cxPanel + Math.sin(t * 0.4 + phase) * 10 - mouseRef.current.x * 0.012;
+      const by =
+        cyPanel + Math.cos(t * 0.3 + phase) * 10 - mouseRef.current.y * 0.012;
 
       ctx.save();
       ctx.strokeStyle = "rgba(255,255,255,0.18)";
@@ -395,19 +510,22 @@ function Interactive2DCanvas() {
       ctx.restore();
     };
 
-    drawBlueprint(W * 0.78, H * 0.25,  118, 82,  0);
-    drawBlueprint(W * 0.88, H * 0.72, 76,  56,  Math.PI);
+    drawBlueprint(W * 0.78, H * 0.25, 118, 82, 0);
+    drawBlueprint(W * 0.88, H * 0.72, 76, 56, Math.PI);
     drawBlueprint(W * 0.58, H * 0.78, 148, 102, Math.PI / 2);
 
     // ── Mouse trail points (from old hero) ──
     const pts = pointsRef.current;
     for (let i = pts.length - 1; i >= 0; i--) {
       pts[i].age += 1;
-      pts[i].x  += pts[i].vx;
-      pts[i].y  += pts[i].vy;
+      pts[i].x += pts[i].vx;
+      pts[i].y += pts[i].vy;
       pts[i].vx *= 0.97;
       pts[i].vy *= 0.97;
-      if (pts[i].age > 100) { pts.splice(i, 1); continue; }
+      if (pts[i].age > 100) {
+        pts.splice(i, 1);
+        continue;
+      }
       const a = 1 - pts[i].age / 100;
       ctx.fillStyle = `rgba(74, 144, 226, ${a * 0.65})`;
       ctx.fillRect(pts[i].x - 1.5, pts[i].y - 1.5, 3, 3);
@@ -420,7 +538,9 @@ function Interactive2DCanvas() {
         const dy = pts[i].y - pts[j].y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 70) {
-          const a = (1 - dist / 70) * Math.min(1 - pts[i].age / 100, 1 - pts[j].age / 100);
+          const a =
+            (1 - dist / 70) *
+            Math.min(1 - pts[i].age / 100, 1 - pts[j].age / 100);
           ctx.strokeStyle = `rgba(142, 84, 233, ${a * 0.35})`;
           ctx.lineWidth = 0.8;
           ctx.beginPath();
@@ -444,8 +564,10 @@ function Interactive2DCanvas() {
       ctx.lineWidth = 1;
       ctx.setLineDash([8, 6]);
       ctx.beginPath();
-      ctx.moveTo(mx, 0); ctx.lineTo(mx, H);
-      ctx.moveTo(0, my); ctx.lineTo(W, my);
+      ctx.moveTo(mx, 0);
+      ctx.lineTo(mx, H);
+      ctx.moveTo(0, my);
+      ctx.lineTo(W, my);
       ctx.stroke();
       ctx.setLineDash([]);
 
@@ -463,18 +585,31 @@ function Interactive2DCanvas() {
       }
 
       // Snap ring glow
-      const glow = ctx.createRadialGradient(snappedX, snappedY, 0, snappedX, snappedY, 34);
+      const glow = ctx.createRadialGradient(
+        snappedX,
+        snappedY,
+        0,
+        snappedX,
+        snappedY,
+        34,
+      );
       glow.addColorStop(0, "rgba(74,144,226,0.62)");
       glow.addColorStop(0.38, "rgba(142,84,233,0.18)");
       glow.addColorStop(1, "rgba(74,144,226,0)");
       ctx.fillStyle = glow;
-      ctx.beginPath(); ctx.arc(snappedX, snappedY, 34, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.arc(snappedX, snappedY, 34, 0, Math.PI * 2);
+      ctx.fill();
 
       // Snap dot
       ctx.fillStyle = "rgba(74, 144, 226, 1)";
-      ctx.beginPath(); ctx.arc(snappedX, snappedY, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.arc(snappedX, snappedY, 3, 0, Math.PI * 2);
+      ctx.fill();
       ctx.strokeStyle = "rgba(255,255,255,0.55)";
-      ctx.beginPath(); ctx.arc(snappedX, snappedY, 10, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(snappedX, snappedY, 10, 0, Math.PI * 2);
+      ctx.stroke();
 
       // Coordinate label
       ctx.fillStyle = "rgba(74, 144, 226, 0.9)";
@@ -495,7 +630,7 @@ function Interactive2DCanvas() {
     if (!canvas) return;
 
     const resize = () => {
-      canvas.width  = canvas.offsetWidth  * window.devicePixelRatio;
+      canvas.width = canvas.offsetWidth * window.devicePixelRatio;
       canvas.height = canvas.offsetHeight * window.devicePixelRatio;
       const ctx = canvas.getContext("2d");
       if (ctx) ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
@@ -505,11 +640,11 @@ function Interactive2DCanvas() {
 
     const handleMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
-      const sx = canvas.offsetWidth  / rect.width;
+      const sx = canvas.offsetWidth / rect.width;
       const sy = canvas.offsetHeight / rect.height;
       mouseRef.current.targetX = (e.clientX - rect.left) * sx;
-      mouseRef.current.targetY = (e.clientY - rect.top)  * sy;
-      mouseRef.current.active  = true;
+      mouseRef.current.targetY = (e.clientY - rect.top) * sy;
+      mouseRef.current.active = true;
 
       // Spawn trail particles
       for (let i = 0; i < 2; i++) {
@@ -524,7 +659,9 @@ function Interactive2DCanvas() {
       if (pointsRef.current.length > 300) pointsRef.current.splice(0, 50);
     };
 
-    const handleLeave = () => { mouseRef.current.active = false; };
+    const handleLeave = () => {
+      mouseRef.current.active = false;
+    };
 
     canvas.addEventListener("mousemove", handleMove);
     canvas.addEventListener("mouseleave", handleLeave);
@@ -551,20 +688,37 @@ export function InteractiveHero() {
   const [mode, setMode] = useState<"2d" | "3d">("3d");
 
   return (
-    <div style={{ position: "absolute", inset: 0, overflow: "hidden", zIndex: 0, background: "#080808" }}>
-
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        overflow: "hidden",
+        zIndex: 0,
+        background: "#080808",
+      }}
+    >
       {/* Left-side gradient to ensure text readability */}
       <div
         style={{
-          position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none",
-          background: "linear-gradient(90deg, #080808 28%, rgba(8,8,8,0.55) 60%, transparent 100%)",
+          position: "absolute",
+          inset: 0,
+          zIndex: 2,
+          pointerEvents: "none",
+          background:
+            "linear-gradient(90deg, #080808 28%, rgba(8,8,8,0.55) 60%, transparent 100%)",
         }}
       />
 
       {/* Bottom vignette */}
       <div
         style={{
-          position: "absolute", bottom: 0, left: 0, right: 0, height: "30%", zIndex: 2, pointerEvents: "none",
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: "30%",
+          zIndex: 2,
+          pointerEvents: "none",
           background: "linear-gradient(to top, #080808 0%, transparent 100%)",
         }}
       />
@@ -581,7 +735,11 @@ export function InteractiveHero() {
           >
             <Canvas
               camera={{ position: [0, 0, 7], fov: 48 }}
-              gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
+              gl={{
+                antialias: true,
+                toneMapping: THREE.ACESFilmicToneMapping,
+                toneMappingExposure: 1.1,
+              }}
             >
               <Scene3D />
             </Canvas>
@@ -603,8 +761,13 @@ export function InteractiveHero() {
       {/* Mode toggle */}
       <div
         style={{
-          position: "absolute", bottom: "2.5rem", right: "3rem", zIndex: 20,
-          display: "flex", gap: "2px", padding: "4px",
+          position: "absolute",
+          bottom: "2.5rem",
+          right: "3rem",
+          zIndex: 20,
+          display: "flex",
+          gap: "2px",
+          padding: "4px",
           borderRadius: "9999px",
           background: "rgba(255,255,255,0.05)",
           border: "1px solid rgba(255,255,255,0.08)",
@@ -636,7 +799,9 @@ export function InteractiveHero() {
               <motion.span
                 layoutId="mode-pill"
                 style={{
-                  position: "absolute", inset: 0, borderRadius: "9999px",
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: "9999px",
                   background: "rgba(255,255,255,0.1)",
                   border: "1px solid rgba(255,255,255,0.15)",
                   zIndex: -1,
