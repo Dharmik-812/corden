@@ -50,7 +50,8 @@ export async function POST(request: Request) {
       created_at: createdAt,
     });
   } catch (err) {
-    console.error("[auth/signup]", err);
+    const message = err instanceof Error ? err.stack || err.message : String(err);
+    console.error("[auth/signup] Internal error during signup:", message);
     return Response.json({ error: "Internal server error." }, { status: 500 });
   }
 }

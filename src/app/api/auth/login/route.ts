@@ -42,7 +42,8 @@ export async function POST(request: Request) {
       created_at: user.created_at,
     });
   } catch (err) {
-    console.error("[auth/login]", err);
+    const message = err instanceof Error ? err.stack || err.message : String(err);
+    console.error("[auth/login] Internal error during login:", message);
     return Response.json({ error: "Internal server error." }, { status: 500 });
   }
 }
