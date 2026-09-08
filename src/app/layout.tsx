@@ -17,7 +17,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Corden",
-  description: "A browser-based 2D + 3D architectural workspace. Draft, model, create.",
+  description:
+    "A browser-based 2D + 3D architectural workspace. Draft, model, create.",
   icons: {
     icon: "/icon.svg",
     apple: "/icon-192x192.png",

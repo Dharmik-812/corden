@@ -8,7 +8,6 @@
  * Edge runtime or React Server Components that might be parallelised).
  */
 
-import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
 
@@ -43,20 +42,51 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);
 `;
 
-// ─── singleton ────────────────────────────────────────────────────────────
-let _db: Database.Database | null = null;
+export interface ISqliteStatement {
+  get(...params: unknown[]): unknown;
+  all(...params: unknown[]): unknown[];
+  run(...params: unknown[]): { changes: number | bigint; lastInsertRowid: number | bigint };
+}
 
-export function getDb(): Database.Database {
-  if (_db) return _db;
+export interface ISqliteDb {
+  exec(sql: string): void;
+  prepare(sql: string): ISqliteStatement;
+}
+
+// ─── singleton ────────────────────────────────────────────────────────────
+const globalForDb = globalThis as unknown as { _cordenDb?: ISqliteDb };
+
+export function getDb(): ISqliteDb {
+  if (globalForDb._cordenDb) return globalForDb._cordenDb;
 
   // Ensure the data directory exists
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
 
-  _db = new Database(DB_PATH);
-  _db.exec(SCHEMA);
-  return _db;
+  // Node 22.5+ and Node 24+ include built-in zero-dependency 'node:sqlite'
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { DatabaseSync } = require("node:sqlite");
+    const db = new DatabaseSync(DB_PATH);
+    db.exec(SCHEMA);
+    globalForDb._cordenDb = db;
+    return globalForDb._cordenDb;
+  } catch {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const BetterSqlite3 = require("better-sqlite3");
+      const db = new BetterSqlite3(DB_PATH);
+      db.exec(SCHEMA);
+      globalForDb._cordenDb = db;
+      return globalForDb._cordenDb;
+    } catch (err) {
+      console.error("Failed to initialize SQLite database:", err);
+      throw new Error(
+        "Could not initialize SQLite. Use Node.js 22.5+ or Node 24+ (built-in node:sqlite) or install better-sqlite3 with C++ build tools."
+      );
+    }
+  }
 }
 
 // ─── typed row shapes ─────────────────────────────────────────────────────

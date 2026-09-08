@@ -8,10 +8,28 @@ import { Logo } from "@/components/shared/Logo";
 import { SiteHeader } from "@/components/shared/SiteHeader";
 import { SplashScreen } from "@/components/shared/SplashScreen";
 import { InteractiveHero } from "@/components/home/InteractiveHero";
-import { Box, PencilRuler, Sparkles, Layers, Cpu, Zap, ArrowRight } from "lucide-react";
+import {
+  Box,
+  PencilRuler,
+  Sparkles,
+  Layers,
+  Cpu,
+  Zap,
+  ArrowRight,
+} from "lucide-react";
 
 /* ─── Reusable animated section wrapper ─── */
-function FadeInSection({ children, delay = 0, className = "", style }: { children: React.ReactNode; delay?: number; className?: string; style?: React.CSSProperties }) {
+function FadeInSection({
+  children,
+  delay = 0,
+  className = "",
+  style,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   return (
@@ -28,44 +46,24 @@ function FadeInSection({ children, delay = 0, className = "", style }: { childre
   );
 }
 
-/* ─── Magnetic Glow Button ─── */
-function GlowLink({ href, children, variant = "primary" }: { href: string; children: React.ReactNode; variant?: "primary" | "ghost" }) {
-  const [hovered, setHovered] = useState(false);
+/* ─── Standardized CTA Link ─── */
+function GlowLink({
+  href,
+  children,
+  variant = "primary",
+}: {
+  href: string;
+  children: React.ReactNode;
+  variant?: "primary" | "ghost";
+}) {
   return (
     <Link
       href={href}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "8px",
-        padding: variant === "primary" ? "14px 36px" : "14px 26px",
-        borderRadius: "9999px",
-        fontSize: "0.9rem",
-        fontWeight: 600,
-        letterSpacing: "0.02em",
-        textDecoration: "none",
-        position: "relative",
-        overflow: "hidden",
-        transition: "transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease",
-        transform: hovered ? "translateY(-2px) scale(1.02)" : "none",
-        ...(variant === "primary" ? {
-          background: hovered
-            ? "linear-gradient(135deg, #5a88cc, #9d69f0)"
-            : "linear-gradient(135deg, #4772b3, #8E54E9)",
-          color: "#fff",
-          boxShadow: hovered
-            ? "0 0 32px rgba(85,155,255,0.55), 0 8px 32px rgba(71,114,179,0.5), inset 0 1px 0 rgba(255,255,255,0.25)"
-            : "0 0 20px rgba(85,155,255,0.25), 0 4px 16px rgba(71,114,179,0.3), inset 0 1px 0 rgba(255,255,255,0.15)",
-        } : {
-          background: hovered ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.04)",
-          color: hovered ? "#ffffff" : "rgba(255,255,255,0.75)",
-          border: hovered ? "1px solid rgba(255,255,255,0.3)" : "1px solid rgba(255,255,255,0.22)",
-          backdropFilter: "blur(12px)",
-          boxShadow: hovered ? "0 4px 20px rgba(0,0,0,0.4)" : "none",
-        }),
-      }}
+      className={
+        variant === "primary"
+          ? "site-primary-btn site-primary-btn--hero"
+          : "site-ghost-btn site-ghost-btn--hero"
+      }
     >
       {children}
     </Link>
@@ -74,10 +72,23 @@ function GlowLink({ href, children, variant = "primary" }: { href: string; child
 
 /* ─── Bento Feature Card ─── */
 function BentoCard({
-  icon, title, description, gradient, accentColor, href, delay = 0, colSpan = 1,
+  icon,
+  title,
+  description,
+  gradient,
+  accentColor,
+  href,
+  delay = 0,
+  colSpan = 1,
 }: {
-  icon: React.ReactNode; title: string; description: string;
-  gradient: string; accentColor: string; href: string; delay?: number; colSpan?: number;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  gradient: string;
+  accentColor: string;
+  href: string;
+  delay?: number;
+  colSpan?: number;
 }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
@@ -103,15 +114,16 @@ function BentoCard({
         cursor: "pointer",
       }}
     >
-      <Link href={href} style={{ display: "block", height: "100%", textDecoration: "none" }}>
+      <Link
+        href={href}
+        style={{ display: "block", height: "100%", textDecoration: "none" }}
+      >
         <div
           style={{
             height: "100%",
             borderRadius: "22px",
             padding: "36px",
-            background: hovered
-              ? "rgba(15,15,20,0.95)"
-              : "rgba(12,12,16,0.9)",
+            background: hovered ? "rgba(15,15,20,0.95)" : "rgba(12,12,16,0.9)",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
             overflow: "hidden",
@@ -120,60 +132,73 @@ function BentoCard({
           }}
         >
           {/* Background glow blob */}
-          <div style={{
-            position: "absolute", top: "-20%", right: "-10%",
-            width: "60%", height: "60%",
-            background: gradient,
-            filter: "blur(60px)",
-            opacity: hovered ? 0.4 : 0.2,
-            transition: "opacity 0.4s ease",
-            borderRadius: "50%",
-            pointerEvents: "none",
-          }} />
+          <div
+            style={{
+              position: "absolute",
+              top: "-20%",
+              right: "-10%",
+              width: "60%",
+              height: "60%",
+              background: gradient,
+              filter: "blur(60px)",
+              opacity: hovered ? 0.4 : 0.2,
+              transition: "opacity 0.4s ease",
+              borderRadius: "50%",
+              pointerEvents: "none",
+            }}
+          />
 
           {/* Icon */}
-          <div style={{
-            display: "inline-flex",
-            padding: "12px",
-            borderRadius: "14px",
-            background: `${accentColor}20`,
-            border: `1px solid ${accentColor}40`,
-            marginBottom: "20px",
-            color: accentColor,
-            transition: "all 0.3s ease",
-            boxShadow: hovered ? `0 0 20px ${accentColor}40` : "none",
-          }}>
+          <div
+            style={{
+              display: "inline-flex",
+              padding: "12px",
+              borderRadius: "14px",
+              background: `${accentColor}20`,
+              border: `1px solid ${accentColor}40`,
+              marginBottom: "20px",
+              color: accentColor,
+              transition: "all 0.3s ease",
+              boxShadow: hovered ? `0 0 20px ${accentColor}40` : "none",
+            }}
+          >
             {icon}
           </div>
 
-          <h3 style={{
-            fontSize: "1.3rem",
-            fontWeight: 700,
-            color: "#fff",
-            marginBottom: "12px",
-            letterSpacing: "-0.02em",
-          }}>
+          <h3
+            style={{
+              fontSize: "1.3rem",
+              fontWeight: 700,
+              color: "#fff",
+              marginBottom: "12px",
+              letterSpacing: "-0.02em",
+            }}
+          >
             {title}
           </h3>
 
-          <p style={{
-            fontSize: "0.9rem",
-            color: "rgba(255,255,255,0.5)",
-            lineHeight: 1.7,
-            marginBottom: "24px",
-          }}>
+          <p
+            style={{
+              fontSize: "0.9rem",
+              color: "rgba(255,255,255,0.5)",
+              lineHeight: 1.7,
+              marginBottom: "24px",
+            }}
+          >
             {description}
           </p>
 
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            fontSize: "0.85rem",
-            fontWeight: 600,
-            color: accentColor,
-            transition: "gap 0.2s ease",
-          }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              color: accentColor,
+              transition: "gap 0.2s ease",
+            }}
+          >
             Open Editor <ArrowRight size={14} />
           </div>
         </div>
@@ -201,38 +226,54 @@ export default function Home() {
 
       {/* Main Content */}
       <main style={{ background: "#080808", minHeight: "100vh" }}>
-
         {/* HERO SECTION */}
-        <section style={{ position: "relative", height: "100vh", overflow: "hidden" }}>
+        <section
+          style={{ position: "relative", height: "100vh", overflow: "hidden" }}
+        >
           <InteractiveHero />
 
           {/* Hero Text Overlay */}
-          <div style={{
-            position: "absolute", inset: 0, zIndex: 10, pointerEvents: "none",
-            display: "flex", flexDirection: "column", justifyContent: "center",
-            padding: "0 6rem", maxWidth: "720px",
-          }}>
-
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 10,
+              pointerEvents: "none",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              padding: "0 6rem",
+              maxWidth: "720px",
+            }}
+          >
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 2.5, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+              transition={{
+                delay: 2.5,
+                duration: 0.9,
+                ease: [0.16, 1, 0.3, 1],
+              }}
               style={{
-                fontSize: "clamp(3rem, 6vw, 5.5rem)",
-                fontWeight: 900,
+                fontSize: "clamp(3rem, 6vw, 5.25rem)",
+                fontWeight: 800,
                 lineHeight: 1.04,
-                letterSpacing: "-0.04em",
-                color: "#f8f8f8",
+                letterSpacing: "-0.035em",
+                color: "#F3F4F6",
                 marginBottom: "24px",
+                fontFamily: "var(--font-tall), 'Syne', sans-serif",
               }}
             >
               Design without{" "}
-              <span style={{
-                background: "linear-gradient(135deg, #559BFF 0%, #8E54E9 50%, #d0e4ff 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}>
+              <span
+                style={{
+                  background:
+                    "linear-gradient(135deg, #FFFFFF 20%, #C5A059 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
                 boundaries.
               </span>
             </motion.h1>
@@ -240,23 +281,34 @@ export default function Home() {
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 2.65, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              transition={{
+                delay: 2.65,
+                duration: 0.8,
+                ease: [0.16, 1, 0.3, 1],
+              }}
               style={{
                 fontSize: "1.0625rem",
-                color: "rgba(255,255,255,0.60)",
+                color: "rgba(243, 244, 246, 0.72)",
                 lineHeight: 1.75,
-                marginBottom: "28px",
-                maxWidth: "500px",
+                marginBottom: "32px",
+                maxWidth: "520px",
+                fontFamily: "var(--font-body), 'Plus Jakarta Sans', sans-serif",
               }}
             >
-              Professional-grade 3D modeling and precision 2D drafting converge.<br />
-              Build, visualize, and render breathtaking designs natively in your browser — zero installation required.
+              Professional-grade 3D modeling and precision 2D drafting converge.
+              <br />
+              Build, visualize, and render spatial designs natively in your
+              browser: zero installation required.
             </motion.p>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 2.8, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              transition={{
+                delay: 2.8,
+                duration: 0.7,
+                ease: [0.16, 1, 0.3, 1],
+              }}
               style={{ display: "flex", gap: "12px", pointerEvents: "auto" }}
             >
               <GlowLink href="/dashboard" variant="primary">
@@ -274,20 +326,33 @@ export default function Home() {
             animate={{ opacity: 0.55 }}
             transition={{ delay: 3.5, duration: 1 }}
             style={{
-              position: "absolute", bottom: "2.5rem", left: "50%",
-              transform: "translateX(-50%)", zIndex: 10,
-              display: "flex", flexDirection: "column", alignItems: "center", gap: "8px",
+              position: "absolute",
+              bottom: "2.5rem",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 10,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "8px",
             }}
           >
             <motion.div
               animate={{ y: [0, 10, 0] }}
-              transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
-              style={{ width: "1px", height: "40px", background: "linear-gradient(to bottom, rgba(255,255,255,0.5), transparent)" }}
+              transition={{
+                repeat: Infinity,
+                duration: 1.6,
+                ease: "easeInOut",
+              }}
+              style={{
+                width: "1px",
+                height: "40px",
+                background:
+                  "linear-gradient(to bottom, rgba(255,255,255,0.5), transparent)",
+              }}
             />
           </motion.div>
         </section>
-
-
       </main>
     </>
   );

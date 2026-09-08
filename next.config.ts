@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
         "utf-8-validate": "commonjs utf-8-validate",
         bufferutil: "commonjs bufferutil",
         canvas: "commonjs canvas",
+        "node:sqlite": "commonjs node:sqlite",
         "better-sqlite3": "commonjs better-sqlite3",
       });
     }
