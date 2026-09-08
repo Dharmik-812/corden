@@ -1,12 +1,10 @@
 /**
- * project-storage.ts — API-backed project persistence.
+ * project-storage.ts — Dual-Tier Resilient Project Persistence.
  *
- * All functions now call the backend REST API instead of localStorage.
- * The exported types and function signatures are preserved exactly so
- * all components and hooks that import from this file continue to work.
- *
- * Preset projects (preset-2d, preset-3d) are still served from local
- * default data — the API returns 404 for them and we fall back gracefully.
+ * Combines backend API persistence with browser localStorage synchronization.
+ * - Always preserves changes to both preset starters and user drafts.
+ * - Works seamlessly whether authenticated or guest.
+ * - Automatically falls back to offline/local storage if API returns 401/404.
  */
 
 import type { SceneObject, EnvironmentPreset, ShadingMode } from "@/stores/editor3d-store";
@@ -63,7 +61,40 @@ const PRESET_PROJECTS: ProjectMeta[] = [
   },
 ];
 
-// ─── Preset default data (unchanged from original) ─────────────────────────
+// ─── Local Storage Keys ────────────────────────────────────────────────────
+const LOCAL_PROJECTS_KEY = "corden_local_projects_v2";
+
+function getLocalProjectsMeta(): ProjectMeta[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_PROJECTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalProjectsMeta(list: ProjectMeta[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(LOCAL_PROJECTS_KEY, JSON.stringify(list));
+  } catch {
+    // quota exceeded or private mode
+  }
+}
+
+function updateLocalMeta(meta: ProjectMeta): void {
+  const current = getLocalProjectsMeta();
+  const idx = current.findIndex((p) => p.id === meta.id);
+  if (idx >= 0) {
+    current[idx] = { ...current[idx], ...meta };
+  } else {
+    current.unshift(meta);
+  }
+  saveLocalProjectsMeta(current);
+}
+
+// ─── Preset default data ───────────────────────────────────────────────────
 function default2DPresetData(): Project2DData {
   const pixels: Record<string, string> = {};
   const colors = ["#FFEC27", "#FF004D", "#000000", "#29ADFF"];
@@ -185,131 +216,315 @@ export function formatRelativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-// ─── Project list ──────────────────────────────────────────────────────────
+// ─── Project List ──────────────────────────────────────────────────────────
 export async function getAllProjects(): Promise<ProjectMeta[]> {
+  const presetMap = new Map<string, ProjectMeta>();
+  PRESET_PROJECTS.forEach((p) => {
+    let title = p.title;
+    let updated_at = p.updated_at;
+    if (typeof window !== "undefined") {
+      const customTitle = localStorage.getItem(`corden_preset_title_${p.id}`);
+      const customTime = localStorage.getItem(`corden_preset_time_${p.id}`);
+      if (customTitle) title = customTitle;
+      if (customTime) updated_at = customTime;
+    }
+    presetMap.set(p.id, { ...p, title, updated_at });
+  });
+
+  let serverProjects: ProjectMeta[] = [];
   try {
     const res = await fetch("/api/projects");
-    if (!res.ok) return PRESET_PROJECTS; // not logged in → show only presets
-    const json = await res.json();
-    const userProjects: ProjectMeta[] = json.projects ?? [];
-    return [
-      ...PRESET_PROJECTS.map((p) => ({ ...p, updated_at: new Date().toISOString() })),
-      ...userProjects,
-    ].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+    if (res.ok) {
+      const json = await res.json();
+      serverProjects = json.projects ?? [];
+    }
   } catch {
-    return PRESET_PROJECTS;
+    // offline or guest
   }
+
+  const localProjects = getLocalProjectsMeta();
+  const mergedMap = new Map<string, ProjectMeta>();
+
+  // Add presets
+  presetMap.forEach((p, id) => mergedMap.set(id, p));
+
+  // Add local projects
+  localProjects.forEach((p) => mergedMap.set(p.id, p));
+
+  // Overwrite or add server projects
+  serverProjects.forEach((p) => mergedMap.set(p.id, p));
+
+  return Array.from(mergedMap.values()).sort(
+    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  );
 }
 
 export async function getProjectMeta(id: string): Promise<ProjectMeta | undefined> {
-  if (isPresetProject(id)) return PRESET_PROJECTS.find((p) => p.id === id);
-  try {
-    const res = await fetch(`/api/projects/${id}`);
-    if (!res.ok) return undefined;
-    const json = await res.json();
-    return json.project as ProjectMeta;
-  } catch {
-    return undefined;
-  }
-}
-
-// ─── Load ──────────────────────────────────────────────────────────────────
-export async function loadProject2D(id: string): Promise<Project2DData | null> {
-  if (id === PRESET_2D_ID) return default2DPresetData();
-  try {
-    const res = await fetch(`/api/projects/${id}`);
-    if (!res.ok) return null;
-    const json = await res.json();
-    const data = json.project?.data as Project2DData | undefined;
-    if (!data) return null;
-    // Back-compat: old data may have flat `pixels` instead of layers
-    if (!data.layers && (data as unknown as Record<string, unknown>).pixels) {
-      data.layers = [
-        {
-          id: "layer-1",
-          name: "Layer 1",
-          pixels: (data as unknown as Record<string, unknown>).pixels as Record<string, string>,
-          visible: true,
-          opacity: 1,
-          locked: false,
-        },
-      ];
-      data.activeLayerId = "layer-1";
+  if (isPresetProject(id)) {
+    const p = PRESET_PROJECTS.find((item) => item.id === id);
+    if (!p) return undefined;
+    let title = p.title;
+    let updated_at = p.updated_at;
+    if (typeof window !== "undefined") {
+      const customTitle = localStorage.getItem(`corden_preset_title_${id}`);
+      const customTime = localStorage.getItem(`corden_preset_time_${id}`);
+      if (customTitle) title = customTitle;
+      if (customTime) updated_at = customTime;
     }
-    return data;
-  } catch {
-    return null;
+    return { ...p, title, updated_at };
   }
-}
 
-export async function loadProject3D(id: string): Promise<Project3DData | null> {
-  if (id === PRESET_3D_ID) return default3DPresetData();
   try {
     const res = await fetch(`/api/projects/${id}`);
-    if (!res.ok) return null;
-    const json = await res.json();
-    return (json.project?.data as Project3DData) ?? null;
-  } catch {
-    return null;
-  }
-}
-
-// ─── Save ──────────────────────────────────────────────────────────────────
-export async function saveProject2D(id: string, data: Project2DData, title?: string): Promise<void> {
-  if (isPresetProject(id)) return; // never persist presets
-  try {
-    await fetch(`/api/projects/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data, ...(title ? { title } : {}) }),
-    });
-  } catch {
-    // autosave failure is non-fatal
-  }
-}
-
-export async function saveProject3D(id: string, data: Project3DData, title?: string): Promise<void> {
-  if (isPresetProject(id)) return;
-  try {
-    await fetch(`/api/projects/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data, ...(title ? { title } : {}) }),
-    });
-  } catch {
-    // autosave failure is non-fatal
-  }
-}
-
-// ─── Create ────────────────────────────────────────────────────────────────
-export async function createProject(type: ProjectType, title?: string): Promise<ProjectMeta> {
-  try {
-    const res = await fetch("/api/projects", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, title }),
-    });
     if (res.ok) {
       const json = await res.json();
       return json.project as ProjectMeta;
     }
   } catch {
-    // fall through to local fallback
+    // fallback to local
   }
 
-  // Fallback for guest / offline use — generate a local ID
+  const locals = getLocalProjectsMeta();
+  return locals.find((p) => p.id === id);
+}
+
+// ─── Load ──────────────────────────────────────────────────────────────────
+export async function loadProject2D(id: string): Promise<Project2DData | null> {
+  if (id === PRESET_2D_ID) {
+    if (typeof window !== "undefined") {
+      const custom = localStorage.getItem(`corden_preset_data_${PRESET_2D_ID}`);
+      if (custom) {
+        try {
+          return JSON.parse(custom);
+        } catch {
+          // fall through
+        }
+      }
+    }
+    return default2DPresetData();
+  }
+
+  // 1. Try server
+  try {
+    const res = await fetch(`/api/projects/${id}`);
+    if (res.ok) {
+      const json = await res.json();
+      const data = json.project?.data as Project2DData | undefined;
+      if (data) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem(`corden_data_${id}`, JSON.stringify(data));
+        }
+        return data;
+      }
+    }
+  } catch {
+    // fall through to local
+  }
+
+  // 2. Fallback to local storage
+  if (typeof window !== "undefined") {
+    const localRaw = localStorage.getItem(`corden_data_${id}`);
+    if (localRaw) {
+      try {
+        return JSON.parse(localRaw);
+      } catch {
+        return null;
+      }
+    }
+  }
+
+  return null;
+}
+
+export async function loadProject3D(id: string): Promise<Project3DData | null> {
+  if (id === PRESET_3D_ID) {
+    if (typeof window !== "undefined") {
+      const custom = localStorage.getItem(`corden_preset_data_${PRESET_3D_ID}`);
+      if (custom) {
+        try {
+          return JSON.parse(custom);
+        } catch {
+          // fall through
+        }
+      }
+    }
+    return default3DPresetData();
+  }
+
+  // 1. Try server
+  try {
+    const res = await fetch(`/api/projects/${id}`);
+    if (res.ok) {
+      const json = await res.json();
+      const data = json.project?.data as Project3DData | undefined;
+      if (data) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem(`corden_data_${id}`, JSON.stringify(data));
+        }
+        return data;
+      }
+    }
+  } catch {
+    // fall through to local
+  }
+
+  // 2. Fallback to local storage
+  if (typeof window !== "undefined") {
+    const localRaw = localStorage.getItem(`corden_data_${id}`);
+    if (localRaw) {
+      try {
+        return JSON.parse(localRaw);
+      } catch {
+        return null;
+      }
+    }
+  }
+
+  return null;
+}
+
+// ─── Save ──────────────────────────────────────────────────────────────────
+export async function saveProject2D(id: string, data: Project2DData, title?: string): Promise<void> {
+  const now = new Date().toISOString();
+
+  // If saving preset, persist user's custom design locally so it's never lost
+  if (isPresetProject(id)) {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`corden_preset_data_${id}`, JSON.stringify(data));
+        localStorage.setItem(`corden_preset_time_${id}`, now);
+        if (title) localStorage.setItem(`corden_preset_title_${id}`, title);
+      } catch {
+        // storage quota
+      }
+    }
+    return;
+  }
+
+  // Save regular projects to localStorage immediately
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(`corden_data_${id}`, JSON.stringify(data));
+      updateLocalMeta({
+        id,
+        title: title || "Untitled 2D Draft",
+        type: "2d",
+        updated_at: now,
+      });
+    } catch {
+      // storage quota
+    }
+  }
+
+  // Sync with server if logged in
+  try {
+    await fetch(`/api/projects/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data, ...(title ? { title } : {}) }),
+    });
+  } catch {
+    // offline / non-fatal
+  }
+}
+
+export async function saveProject3D(id: string, data: Project3DData, title?: string): Promise<void> {
+  const now = new Date().toISOString();
+
+  // If saving preset, persist user's custom design locally so it's never lost
+  if (isPresetProject(id)) {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`corden_preset_data_${id}`, JSON.stringify(data));
+        localStorage.setItem(`corden_preset_time_${id}`, now);
+        if (title) localStorage.setItem(`corden_preset_title_${id}`, title);
+      } catch {
+        // storage quota
+      }
+    }
+    return;
+  }
+
+  // Save regular projects to localStorage immediately
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(`corden_data_${id}`, JSON.stringify(data));
+      updateLocalMeta({
+        id,
+        title: title || "Untitled 3D Scene",
+        type: "3d",
+        updated_at: now,
+      });
+    } catch {
+      // storage quota
+    }
+  }
+
+  // Sync with server if logged in
+  try {
+    await fetch(`/api/projects/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data, ...(title ? { title } : {}) }),
+    });
+  } catch {
+    // offline / non-fatal
+  }
+}
+
+// ─── Create ────────────────────────────────────────────────────────────────
+export async function createProject(type: ProjectType, title?: string): Promise<ProjectMeta> {
+  const defaultTitle = title ?? (type === "2d" ? "Untitled 2D Draft" : "Untitled 3D Scene");
+
+  // 1. Try server
+  try {
+    const res = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, title: defaultTitle }),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const meta = json.project as ProjectMeta;
+      updateLocalMeta(meta);
+      return meta;
+    }
+  } catch {
+    // fall through to local
+  }
+
+  // 2. Fallback for guest / offline use — generate local ID
   const id = `proj-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  return {
+  const localMeta: ProjectMeta = {
     id,
-    title: title ?? (type === "2d" ? "Untitled 2D Draft" : "Untitled 3D Scene"),
+    title: defaultTitle,
     type,
     updated_at: new Date().toISOString(),
   };
+  updateLocalMeta(localMeta);
+  return localMeta;
 }
 
 // ─── Delete ────────────────────────────────────────────────────────────────
 export async function deleteProject(id: string): Promise<void> {
-  if (isPresetProject(id)) return;
+  if (isPresetProject(id)) {
+    // Reset preset to original default
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(`corden_preset_data_${id}`);
+      localStorage.removeItem(`corden_preset_time_${id}`);
+      localStorage.removeItem(`corden_preset_title_${id}`);
+    }
+    return;
+  }
+
+  // Remove locally
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(`corden_data_${id}`);
+    const current = getLocalProjectsMeta();
+    saveLocalProjectsMeta(current.filter((p) => p.id !== id));
+  }
+
+  // Remove from server
   try {
     await fetch(`/api/projects/${id}`, { method: "DELETE" });
   } catch {
