@@ -16,7 +16,7 @@ function MenuItem({ label, onClick, shortcut, disabled, closeMenu }: { label: st
         fontSize: '0.75rem', transition: 'all 0.15s',
         borderRadius: '6px', margin: '2px 4px',
       }}
-      onMouseEnter={(e) => { if (!disabled) { e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)'; e.currentTarget.style.color = '#fff'; } }}
+      onMouseEnter={(e) => { if (!disabled) { e.currentTarget.style.background = 'rgba(197, 160, 89, 0.2)'; e.currentTarget.style.color = '#fff'; } }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = disabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.85)'; }}
     >
       <span style={{ fontWeight: 500 }}>{label}</span>
@@ -34,7 +34,7 @@ function SubmenuItem({ label, items, id, closeMenu }: { label: string; items: { 
       <div style={{
         padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         cursor: 'pointer', color: activeSubmenu === id ? '#fff' : 'rgba(255,255,255,0.85)', fontSize: '0.75rem', fontWeight: 500,
-        background: activeSubmenu === id ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+        background: activeSubmenu === id ? 'rgba(197, 160, 89, 0.2)' : 'transparent',
         borderRadius: '6px', margin: '2px 4px', transition: 'all 0.15s'
       }}>
         <span>{label}</span>
@@ -49,7 +49,7 @@ function SubmenuItem({ label, items, id, closeMenu }: { label: string; items: { 
             transition={{ duration: 0.15 }}
             style={{ 
               position: 'absolute', left: 'calc(100% - 4px)', top: '-4px', minWidth: '160px',
-              background: 'rgba(6, 7, 10, 0.95)', backdropFilter: 'blur(40px)',
+              background: 'rgba(11, 13, 18, 0.95)', backdropFilter: 'blur(40px)',
               border: '1px solid rgba(255,255,255,0.08)',
               boxShadow: '0 16px 48px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)',
               padding: '6px 0', zIndex: 200, borderRadius: '12px'
@@ -67,11 +67,13 @@ function SubmenuItem({ label, items, id, closeMenu }: { label: string; items: { 
 
 export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: string) => void; saveStatus?: string; title?: string }) {
   const {
-    addObject, addLight, addCamera, undo, redo,
+    addObject, addLight, addCamera, addModel, undo, redo,
     setShowLeftPanel, showLeftPanel, setShowNPanel, showNPanel,
     setViewPreset, setObjects, commitHistory,
     selectionMode, setSelectionMode, selectedId, objects,
   } = useEditor3DStore();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const menuBarRef = useRef<HTMLDivElement>(null);
@@ -93,11 +95,26 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
   const handleMenuClick = (menu: string) => setActiveMenu(activeMenu === menu ? null : menu);
   const handleMouseEnter = (menu: string) => { if (activeMenu) setActiveMenu(menu); };
 
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const name = file.name;
+    const ext = name.split('.').pop()?.toLowerCase();
+    if (ext === 'gltf' || ext === 'glb' || ext === 'obj') {
+      addModel(url, ext, name);
+    } else {
+      alert("Unsupported file type. Please use .gltf, .glb, or .obj");
+    }
+    // reset input
+    e.target.value = '';
+  };
+
   const menuStyle = (id: string): React.CSSProperties => ({
     padding: '6px 14px', display: 'flex', alignItems: 'center',
     cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.02em',
-    background: activeMenu === id ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-    color: activeMenu === id ? '#818cf8' : 'rgba(255,255,255,0.7)',
+    background: activeMenu === id ? 'rgba(197, 160, 89, 0.15)' : 'transparent',
+    color: activeMenu === id ? '#C5A059' : 'rgba(255,255,255,0.7)',
     borderRadius: '8px', transition: 'all 0.15s',
     userSelect: 'none', margin: '0 2px',
   });
@@ -107,7 +124,7 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
   return (
     <div ref={menuBarRef} className="editor-top-menubar" style={{
       display: 'flex', alignItems: 'center', height: '48px',
-      background: 'rgba(6, 7, 10, 0.8)',
+      background: 'rgba(11, 13, 18, 0.8)',
       backdropFilter: 'blur(40px)',
       borderBottom: '1px solid rgba(255,255,255,0.08)',
       padding: '0 16px', gap: '4px',
@@ -116,11 +133,19 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
       boxShadow: 'inset 0 -1px 0 rgba(0,0,0,0.5)',
       position: 'relative', zIndex: 100,
     }}>
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        style={{ display: 'none' }} 
+        accept=".gltf,.glb,.obj" 
+        onChange={handleImport} 
+      />
+
       {/* Logo mark */}
       <div style={{
         width: '28px', height: '28px', borderRadius: '8px',
-        background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.4), inset 0 2px 4px rgba(255,255,255,0.3)',
+        background: 'linear-gradient(135deg, #C5A059 0%, #8B1E2D 100%)',
+        boxShadow: '0 4px 12px rgba(197, 160, 89, 0.4), inset 0 2px 4px rgba(255,255,255,0.3)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0, marginRight: '12px',
       }}>
@@ -138,9 +163,9 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
           }}
           onFocus={(e) => {
             e.currentTarget.style.background = 'rgba(0,0,0,0.4)';
-            e.currentTarget.style.borderColor = '#6366f1';
+            e.currentTarget.style.borderColor = '#C5A059';
             e.currentTarget.style.color = '#fff';
-            e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99, 102, 241, 0.2)';
+            e.currentTarget.style.boxShadow = '0 0 0 2px rgba(197, 160, 89, 0.2)';
           }}
           onBlur={(e) => {
             e.currentTarget.style.background = 'transparent';
@@ -195,7 +220,7 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
                 transition={{ duration: 0.15 }}
                 style={{
                   position: 'absolute', top: 'calc(100% + 4px)', left: 0, minWidth: '220px',
-                  background: 'rgba(6, 7, 10, 0.95)', backdropFilter: 'blur(40px)',
+                  background: 'rgba(11, 13, 18, 0.95)', backdropFilter: 'blur(40px)',
                   border: '1px solid rgba(255,255,255,0.08)',
                   boxShadow: '0 16px 48px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)',
                   padding: '6px 0', zIndex: 200, borderRadius: '12px',
@@ -213,7 +238,11 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
                   }} />
                   <MenuItem label="Save" shortcut="Ctrl S" onClick={onSave} closeMenu={closeMenu} />
                   <Divider3D />
+                  <MenuItem label="Import Model (GLTF/OBJ)" onClick={() => fileInputRef.current?.click()} closeMenu={closeMenu} />
+                  <Divider3D />
                   <MenuItem label="Export GLTF" onClick={() => window.dispatchEvent(new Event('export-gltf'))} closeMenu={closeMenu} />
+                  <MenuItem label="Export OBJ" onClick={() => window.dispatchEvent(new Event('export-obj'))} closeMenu={closeMenu} />
+                  <MenuItem label="Render Image" onClick={() => window.dispatchEvent(new Event('render-image'))} closeMenu={closeMenu} />
                 </>)}
                 {id === 'edit' && (<>
                   <MenuItem label="Undo" shortcut="Ctrl Z" onClick={undo} closeMenu={closeMenu} />
@@ -281,14 +310,14 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
               fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.04em',
               textTransform: 'uppercase',
               background: selectionMode === mode
-                ? mode === 'edit' ? 'rgba(245,158,11,0.2)' : 'rgba(99, 102, 241, 0.2)'
+                ? mode === 'edit' ? 'rgba(245,158,11,0.2)' : 'rgba(197, 160, 89, 0.2)'
                 : 'transparent',
               color: selectionMode === mode
-                ? mode === 'edit' ? '#fcd34d' : '#818cf8'
+                ? mode === 'edit' ? '#fcd34d' : '#C5A059'
                 : 'rgba(255,255,255,0.4)',
               transition: 'all 0.2s',
               opacity: mode === 'edit' && !canEditMode ? 0.4 : 1,
-              boxShadow: selectionMode === mode ? (mode === 'edit' ? 'inset 0 0 0 1px rgba(245,158,11,0.4), 0 2px 8px rgba(245,158,11,0.2)' : 'inset 0 0 0 1px rgba(99, 102, 241, 0.4), 0 2px 8px rgba(99, 102, 241, 0.2)') : 'none',
+              boxShadow: selectionMode === mode ? (mode === 'edit' ? 'inset 0 0 0 1px rgba(245,158,11,0.4), 0 2px 8px rgba(245,158,11,0.2)' : 'inset 0 0 0 1px rgba(197, 160, 89, 0.4), 0 2px 8px rgba(197, 160, 89, 0.2)') : 'none',
             }}
           >
             {mode === 'object' ? <Layers size={14} /> : <Edit3 size={14} />}
@@ -315,14 +344,14 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
         style={{
           display: 'flex', alignItems: 'center', gap: '6px',
           padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)',
-          background: saveStatus === 'saving' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255,255,255,0.05)',
-          color: saveStatus === 'saved' ? '#34d399' : saveStatus === 'saving' ? '#818cf8' : '#fff',
+          background: saveStatus === 'saving' ? 'rgba(197, 160, 89, 0.2)' : 'rgba(255,255,255,0.05)',
+          color: saveStatus === 'saved' ? '#34d399' : saveStatus === 'saving' ? '#C5A059' : '#fff',
           cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600,
           transition: 'all 0.2s',
           boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
         }}
-        onMouseEnter={e => { e.currentTarget.style.background = saveStatus === 'saving' ? 'rgba(99, 102, 241, 0.3)' : 'rgba(255,255,255,0.1)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = saveStatus === 'saving' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255,255,255,0.05)'; }}
+        onMouseEnter={e => { e.currentTarget.style.background = saveStatus === 'saving' ? 'rgba(197, 160, 89, 0.3)' : 'rgba(255,255,255,0.1)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = saveStatus === 'saving' ? 'rgba(197, 160, 89, 0.2)' : 'rgba(255,255,255,0.05)'; }}
       >
         <Save size={14} />
         {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save'}

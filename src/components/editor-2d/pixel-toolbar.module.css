@@ -3,8 +3,7 @@
   flex-direction: column;
   gap: 8px;
   width: 52px; /* fixed width so canvas knows how much space toolbar takes */
-  overflow-y: auto;
-  overflow-x: visible;
+  overflow: visible;
   max-height: 100%;
   /* Hide scrollbar track but keep scrollability */
   scrollbar-width: thin;

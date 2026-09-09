@@ -6,7 +6,7 @@ import { SceneObjects } from "./SceneObjects";
 import { useEditor3DStore } from "@/stores/editor3d-store";
 import { useEffect, useRef, Suspense } from "react";
 import * as THREE from "three";
-import { GLTFExporter } from "three-stdlib";
+import { GLTFExporter, OBJExporter } from "three-stdlib";
 import { EffectComposer, Bloom, SSAO, DepthOfField, ChromaticAberration } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
 import { Physics } from "@react-three/rapier";
@@ -154,6 +154,61 @@ function GLTFExporterComponent() {
     window.addEventListener('export-gltf', handleExport as EventListener);
     return () => window.removeEventListener('export-gltf', handleExport as EventListener);
   }, [scene]);
+
+  return null;
+}
+
+function OBJExporterComponent() {
+  const { scene } = useThree();
+
+  useEffect(() => {
+    const handleExport = () => {
+      const exporter = new OBJExporter();
+      const exportScene = new THREE.Scene();
+
+      scene.traverse((child) => {
+        if (child.userData.isExportable) {
+          exportScene.add(child.clone());
+        }
+      });
+
+      const result = exporter.parse(exportScene);
+      const blob = new Blob([result], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'corden-scene.obj';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    };
+
+    window.addEventListener('export-obj', handleExport as EventListener);
+    return () => window.removeEventListener('export-obj', handleExport as EventListener);
+  }, [scene]);
+
+  return null;
+}
+
+function RenderExporterComponent() {
+  const { gl, scene, camera } = useThree();
+
+  useEffect(() => {
+    const handleRender = () => {
+      gl.render(scene, camera);
+      const dataURL = gl.domElement.toDataURL("image/png");
+      const link = document.createElement('a');
+      link.href = dataURL;
+      link.download = 'corden-render.png';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    window.addEventListener('render-image', handleRender as EventListener);
+    return () => window.removeEventListener('render-image', handleRender as EventListener);
+  }, [gl, scene, camera]);
 
   return null;
 }
@@ -394,7 +449,7 @@ export function Viewport3D() {
       <Canvas
         shadows
         camera={{ position: [5, 5, 5], fov: 45, near: 0.01, far: 1000 }}
-        gl={{ antialias: true, toneMapping: shadingMode === 'rendered' ? THREE.ACESFilmicToneMapping : THREE.LinearToneMapping, toneMappingExposure: 1 }}
+        gl={{ preserveDrawingBuffer: true, antialias: true, toneMapping: shadingMode === 'rendered' ? THREE.ACESFilmicToneMapping : THREE.LinearToneMapping, toneMappingExposure: 1 }}
         onContextMenu={(e) => {
           e.preventDefault();
         }}
@@ -402,6 +457,8 @@ export function Viewport3D() {
         <CameraController />
         <AnimationPlayer />
         <GLTFExporterComponent />
+        <OBJExporterComponent />
+        <RenderExporterComponent />
         <InteractionController />
 
         {/* Lighting */}

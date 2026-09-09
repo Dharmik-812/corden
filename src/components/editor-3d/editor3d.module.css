@@ -8,11 +8,11 @@
   flex-direction: column;
   overflow: hidden;
   background: var(--bg-main);
-  --glass-bg: rgba(6, 7, 10, 0.75);
+  --glass-bg: rgba(11, 13, 18, 0.95);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-highlight: rgba(255, 255, 255, 0.03);
-  --neon-accent: #6366f1;
-  --neon-glow: rgba(99, 102, 241, 0.4);
+  --neon-accent: #C5A059;
+  --neon-glow: rgba(197, 160, 89, 0.4);
 }
 
 .workspace {
@@ -166,7 +166,7 @@
     border-right: none;
     border-top: 1px solid var(--glass-border);
     justify-content: flex-start;
-    background: rgba(6, 7, 10, 0.95);
+    background: rgba(11, 13, 18, 0.95);
     order: 2;
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -196,7 +196,7 @@
     transform: translateX(105%);
     width: 320px;
     min-width: 320px;
-    background: rgba(6, 7, 10, 0.95);
+    background: rgba(11, 13, 18, 0.95);
     border-left: 1px solid var(--glass-border);
     box-shadow: -12px 0 48px rgba(0, 0, 0, 0.8);
     z-index: 50;

@@ -1,8 +1,10 @@
 "use client";
 
 import { useEditor3DStore, SceneObject } from "@/stores/editor3d-store";
-import { TransformControls } from "@react-three/drei";
+import { TransformControls, useGLTF } from "@react-three/drei";
+import { useLoader } from "@react-three/fiber";
 import * as THREE from "three";
+import { OBJLoader } from "three-stdlib";
 import { useRef, useEffect, useState, useMemo, Suspense } from "react";
 import { LightObjects } from "./LightObjects";
 import { TexturedMaterial } from "./TexturedMaterial";
@@ -86,6 +88,23 @@ function CameraObject({ obj }: { obj: SceneObject }) {
       )}
     </>
   );
+}
+
+function ModelRenderer({ url, extension }: { url: string; extension: string }) {
+  if (extension === "gltf" || extension === "glb") {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const gltf = useGLTF(url);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const cloned = useMemo(() => gltf.scene.clone(), [gltf.scene]);
+    return <primitive object={cloned} />;
+  } else if (extension === "obj") {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const obj = useLoader(OBJLoader, url);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const cloned = useMemo(() => obj.clone(), [obj]);
+    return <primitive object={cloned} />;
+  }
+  return null;
 }
 
 function ObjectMesh({ obj }: { obj: SceneObject }) {
@@ -215,15 +234,21 @@ function ObjectMesh({ obj }: { obj: SceneObject }) {
         {instances.map((inst, i) => (
           <mesh
             key={i}
-            geometry={geometry}
+            geometry={obj.type !== 'model' ? geometry : undefined}
             position={inst.position}
             scale={inst.scale}
             castShadow
             receiveShadow
           >
-            <Suspense fallback={<meshBasicMaterial color={obj.color} />}>
-              <TexturedMaterial obj={obj} isSelected={isSelected && i===0} shadingMode={shadingMode} />
-            </Suspense>
+            {obj.type === 'model' && obj.modelUrl && obj.modelExtension ? (
+              <Suspense fallback={<meshBasicMaterial color={obj.color} wireframe />}>
+                <ModelRenderer url={obj.modelUrl} extension={obj.modelExtension} />
+              </Suspense>
+            ) : (
+              <Suspense fallback={<meshBasicMaterial color={obj.color} />}>
+                <TexturedMaterial obj={obj} isSelected={isSelected && i===0} shadingMode={shadingMode} />
+              </Suspense>
+            )}
           </mesh>
         ))}
         {/* Selection outline — rendered as sibling lineSegments (correct hierarchy) */}

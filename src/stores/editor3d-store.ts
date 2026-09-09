@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 export type TransformMode = 'translate' | 'rotate' | 'scale';
-export type PrimitiveType = 'cube' | 'sphere' | 'cylinder' | 'cone' | 'plane' | 'torus' | 'icosphere' | 'suzanne';
+export type PrimitiveType = 'cube' | 'sphere' | 'cylinder' | 'cone' | 'plane' | 'torus' | 'icosphere' | 'suzanne' | 'model';
 export type LightType = 'point' | 'sun' | 'spot' | 'area';
 export type ShadingMode = 'solid' | 'wireframe' | 'material' | 'rendered';
 export type SelectionMode = 'object' | 'edit';
@@ -94,6 +94,9 @@ export interface SceneObject {
   isBoolean?: boolean;
   booleanOperation?: 'union' | 'subtract' | 'intersect';
   booleanChildren?: SceneObject[];
+  // External Model
+  modelUrl?: string;
+  modelExtension?: string;
 }
 
 export interface HistoryEntry {
@@ -105,6 +108,7 @@ export interface Editor3DState {
   objects: SceneObject[];
   setObjects: (objs: SceneObject[]) => void;
   addObject: (type: PrimitiveType, extra?: Partial<SceneObject>) => void;
+  addModel: (url: string, extension: string, name: string) => void;
   addLight: (lightType: LightType) => void;
   addCamera: () => void;
   updateObject: (id: string, updates: Partial<SceneObject>) => void;
@@ -281,6 +285,33 @@ export const useEditor3DStore = create<Editor3DState>((set, get) => ({
       modifiers: [],
       keyframes: [],
       ...extra,
+    };
+    set((state) => ({ objects: [...state.objects, newObj], selectedId: newObj.id }));
+  },
+
+  addModel: (url, extension, name) => {
+    get().commitHistory();
+    const count = get().objects.filter(o => o.type === 'model').length;
+    const newObj: SceneObject = {
+      id: `obj_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      name: name || `Model ${count + 1}`,
+      type: 'model',
+      objectType: 'mesh',
+      position: [get().cursor3D[0], get().cursor3D[1], get().cursor3D[2]],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
+      color: '#ffffff',
+      roughness: 0.5,
+      metalness: 0.1,
+      visible: true,
+      hidden: false,
+      renderVisible: true,
+      locked: false,
+      smoothShading: false,
+      modifiers: [],
+      keyframes: [],
+      modelUrl: url,
+      modelExtension: extension,
     };
     set((state) => ({ objects: [...state.objects, newObj], selectedId: newObj.id }));
   },

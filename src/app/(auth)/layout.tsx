@@ -4,6 +4,62 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Logo } from "@/components/shared/Logo";
 import { AUTH_DATA } from "@/data/auth";
+import Script from "next/script";
+import { useEffect, useRef } from "react";
+
+/* ─── Vanta.js TOPOLOGY Background ─── */
+function VantaBackground() {
+  const vantaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let vantaEffect: any = null;
+    const initVanta = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (!vantaEffect && (window as any).VANTA && (window as any).VANTA.TOPOLOGY) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        vantaEffect = (window as any).VANTA.TOPOLOGY({
+          el: vantaRef.current,
+          mouseControls: true,
+          touchControls: true,
+          gyroControls: false,
+          minHeight: 200.00,
+          minWidth: 200.00,
+          scale: 1.00,
+          scaleMobile: 1.00,
+          color: 0xc5a059, // Brass
+          backgroundColor: 0x0b0d12 // Midnight
+        });
+      }
+    };
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((window as any).VANTA && (window as any).VANTA.TOPOLOGY) {
+      initVanta();
+    } else {
+      const interval = setInterval(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((window as any).VANTA && (window as any).VANTA.TOPOLOGY) {
+          initVanta();
+          clearInterval(interval);
+        }
+      }, 100);
+      return () => clearInterval(interval);
+    }
+
+    return () => {
+      if (vantaEffect) vantaEffect.destroy();
+    };
+  }, []);
+
+  return (
+    <>
+      <Script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js" strategy="lazyOnload" />
+      <Script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.topology.min.js" strategy="lazyOnload" />
+      <div ref={vantaRef} style={{ position: "absolute", inset: 0, zIndex: 0 }} />
+    </>
+  );
+}
 
 /** Clean geometric drafting preview built with semantic CSS tokens */
 function ProductPreview() {
@@ -70,9 +126,10 @@ function ProductPreview() {
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="auth-shell">
+    <div className="auth-shell" style={{ position: "relative", background: "transparent" }}>
+      <VantaBackground />
       {/* Header bar */}
-      <header className="auth-shell-header">
+      <header className="auth-shell-header" style={{ position: "relative", zIndex: 10 }}>
         <Link href="/" className="auth-back-link">
           <svg
             width="14"
@@ -95,7 +152,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </Link>
       </header>
 
-      <div className="auth-shell-body">
+      <div className="auth-shell-body" style={{ position: "relative", zIndex: 10 }}>
         {/* Left Branding Panel */}
         <motion.aside
           className="auth-brand-panel"

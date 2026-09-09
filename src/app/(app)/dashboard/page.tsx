@@ -495,19 +495,6 @@ function ProjectCard({
         </div>
         {!project.isPreset && (
           <div className="project-card-menu-anchor">
-            <div className="project-card-hover-actions">
-              <button
-                type="button"
-                className="project-card-menu-btn"
-                title={DASHBOARD_DATA.actions.delete}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onDelete(project.id);
-                }}
-              >
-                <IconTrash />
-              </button>
-            </div>
             <button
               type="button"
               className={`project-card-menu-btn${menuOpen ? " project-card-menu-btn--open" : ""}`}
