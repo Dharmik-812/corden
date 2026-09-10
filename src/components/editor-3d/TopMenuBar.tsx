@@ -242,7 +242,8 @@ export function TopMenuBar({ onSave, saveStatus, title }: { onSave?: (title?: st
                   <Divider3D />
                   <MenuItem label="Export GLTF" onClick={() => window.dispatchEvent(new Event('export-gltf'))} closeMenu={closeMenu} />
                   <MenuItem label="Export OBJ" onClick={() => window.dispatchEvent(new Event('export-obj'))} closeMenu={closeMenu} />
-                  <MenuItem label="Render Image" onClick={() => window.dispatchEvent(new Event('render-image'))} closeMenu={closeMenu} />
+                  <Divider3D />
+                  <MenuItem label="Rendered View (Live Render)" onClick={() => useEditor3DStore.getState().setShadingMode('rendered')} closeMenu={closeMenu} />
                 </>)}
                 {id === 'edit' && (<>
                   <MenuItem label="Undo" shortcut="Ctrl Z" onClick={undo} closeMenu={closeMenu} />

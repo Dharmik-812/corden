@@ -6,29 +6,71 @@ import {
   ZoomIn, ZoomOut, Undo2, Redo2, Save, Minus, Square, SplitSquareHorizontal,
   ChevronDown, ImagePlus, Circle, Triangle, Shapes, SquareDashed, Move,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { ImageImportModal } from "./ImageImportModal";
 import styles from "./pixel-toolbar.module.css";
 
 const CANVAS_SIZES: CanvasSize[] = [8, 16, 32, 48, 64, 128];
 
-/* ─── Shared dropdown style ───────────────────────────────────────── */
-const dropdownStyle: React.CSSProperties = {
-  position: "absolute",
-  left: "52px",
-  top: 0,
-  zIndex: 200,
-  background: "rgba(10,11,16,0.97)",
-  backdropFilter: "blur(40px)",
-  border: "1px solid rgba(255,255,255,0.1)",
-  borderRadius: "14px",
-  padding: "8px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "3px",
-  minWidth: "160px",
-  boxShadow: "0 16px 48px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04) inset",
-};
+/* ─── Portal Dropdown ─────────────────────────────────────────────── */
+function PortalDropdown({
+  anchorRef,
+  children,
+  minWidth = 160,
+  alignBottom = false,
+}: {
+  anchorRef: React.RefObject<HTMLElement | null>;
+  children: React.ReactNode;
+  minWidth?: number;
+  alignBottom?: boolean;
+}) {
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    const update = () => {
+      if (!anchorRef.current) return;
+      const r = anchorRef.current.getBoundingClientRect();
+      setPos({
+        top: alignBottom ? r.bottom - minWidth * 1.4 : r.top,
+        left: r.right + 8,
+      });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [anchorRef, alignBottom, minWidth]);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      style={{
+        position: "fixed",
+        top: pos.top,
+        left: pos.left,
+        zIndex: 9999,
+        background: "rgba(10,11,16,0.97)",
+        backdropFilter: "blur(40px)",
+        border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: "14px",
+        padding: "8px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "3px",
+        minWidth: `${minWidth}px`,
+        boxShadow: "0 16px 48px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04) inset",
+      }}
+    >
+      {children}
+    </div>,
+    document.body
+  );
+}
 
 const dropdownTitleStyle: React.CSSProperties = {
   fontSize: "0.6rem",
@@ -59,6 +101,7 @@ function DropdownItem({
         fontFamily: "var(--font-mono)", fontSize: "0.78rem",
         transition: "background 0.12s",
         textAlign: "left", flexDirection: subLabel ? "column" : "row",
+        width: "100%",
       }}
       onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
       onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
@@ -87,12 +130,24 @@ interface ToolButtonProps {
 
 function ToolButton({ icon, label, shortcut, active, danger, onClick }: ToolButtonProps) {
   const [hov, setHov] = useState(false);
+  const btnRef = useRef<HTMLDivElement>(null);
+  const [tipPos, setTipPos] = useState({ top: 0, left: 0 });
+
+  const updateTip = useCallback(() => {
+    if (!btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    setTipPos({ top: r.top + r.height / 2, left: r.right + 14 });
+  }, []);
+
+  useEffect(() => {
+    if (hov) updateTip();
+  }, [hov, updateTip]);
 
   return (
-    <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
+    <div ref={btnRef} style={{ position: "relative", display: "flex", justifyContent: "center" }}>
       <button
         onClick={onClick}
-        onMouseEnter={() => setHov(true)}
+        onMouseEnter={() => { setHov(true); updateTip(); }}
         onMouseLeave={() => setHov(false)}
         className={styles.toolBtn}
         style={{
@@ -106,19 +161,23 @@ function ToolButton({ icon, label, shortcut, active, danger, onClick }: ToolButt
       >
         {icon}
       </button>
-      {hov && (
+      {hov && typeof document !== "undefined" && createPortal(
         <div style={{
-          position: 'absolute', left: 'calc(100% + 14px)', top: '50%', transform: 'translateY(-50%)',
+          position: 'fixed',
+          top: tipPos.top,
+          left: tipPos.left,
+          transform: 'translateY(-50%)',
           background: '#0f1115', border: '1px solid rgba(255,255,255,0.1)',
           color: '#fff', padding: '5px 10px', borderRadius: '6px',
-          fontSize: '0.68rem', whiteSpace: 'nowrap', zIndex: 200,
+          fontSize: '0.68rem', whiteSpace: 'nowrap', zIndex: 9999,
           boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
           display: 'flex', flexDirection: 'column', gap: '1px',
           pointerEvents: 'none',
         }}>
           <span style={{ fontWeight: 600 }}>{label}</span>
           {shortcut && <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.62rem', fontFamily: 'var(--font-mono)' }}>{shortcut}</span>}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -144,6 +203,33 @@ export function PixelToolbar({ onSave }: { onSave?: () => void }) {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
 
+  // Refs for anchor positioning
+  const shapeAnchorRef = useRef<HTMLButtonElement>(null);
+  const symmetryAnchorRef = useRef<HTMLButtonElement>(null);
+  const sizeAnchorRef = useRef<HTMLButtonElement>(null);
+  const exportAnchorRef = useRef<HTMLButtonElement>(null);
+
+  // Close all menus
+  const closeAll = () => {
+    setShowShapeMenu(false);
+    setShowSymmetryMenu(false);
+    setShowSizeMenu(false);
+    setShowExportMenu(false);
+  };
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const refs = [shapeAnchorRef, symmetryAnchorRef, sizeAnchorRef, exportAnchorRef];
+      if (!refs.some(r => r.current?.contains(target))) {
+        closeAll();
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   const handleExportPNG = (scale: number) => {
     const { layers, canvasWidth, canvasHeight } = usePixelEditorStore.getState();
     const offscreen = document.createElement("canvas");
@@ -152,7 +238,6 @@ export function PixelToolbar({ onSave }: { onSave?: () => void }) {
     const ctx = offscreen.getContext("2d")!;
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, offscreen.width, offscreen.height);
-    // Flatten all visible layers
     for (const layer of layers) {
       if (!layer.visible) continue;
       ctx.globalAlpha = layer.opacity;
@@ -168,7 +253,7 @@ export function PixelToolbar({ onSave }: { onSave?: () => void }) {
     a.href = url;
     a.download = `corden-pixel-${canvasWidth * scale}x${canvasHeight * scale}.png`;
     a.click();
-    setShowExportMenu(false);
+    closeAll();
   };
 
   const primaryTools: { id: PixelTool; icon: React.ReactNode; label: string; shortcut: string }[] = [
@@ -190,10 +275,7 @@ export function PixelToolbar({ onSave }: { onSave?: () => void }) {
 
   const isShapeTool = shapeTools.some(s => s.id === activeTool);
   const activeShape = shapeTools.find(s => s.id === activeTool);
-
-  const shapeIcon = activeShape
-    ? activeShape.icon
-    : <Shapes size={18} strokeWidth={1.5} />;
+  const shapeIcon = activeShape ? activeShape.icon : <Shapes size={18} strokeWidth={1.5} />;
 
   return (
     <div className={styles.toolbarWrapper}>
@@ -212,51 +294,63 @@ export function PixelToolbar({ onSave }: { onSave?: () => void }) {
         ))}
 
         {/* Shapes dropdown */}
-        <div style={{ position: "relative" }}>
-          <ToolButton
-            icon={shapeIcon}
-            label="Shapes"
-            active={isShapeTool}
-            onClick={() => { setShowShapeMenu(v => !v); setShowSymmetryMenu(false); setShowSizeMenu(false); setShowExportMenu(false); }}
-          />
-          {showShapeMenu && (
-            <div style={dropdownStyle}>
-              <div style={dropdownTitleStyle}>Shapes</div>
-              {shapeTools.map(s => (
-                <DropdownItem
-                  key={s.id} label={s.label} icon={s.icon}
-                  active={activeTool === s.id}
-                  onClick={() => { setActiveTool(s.id as PixelTool); setShowShapeMenu(false); }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <button
+          ref={shapeAnchorRef}
+          className={styles.toolBtn}
+          style={{
+            background: isShapeTool
+              ? "linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-brass) 100%)"
+              : showShapeMenu ? "rgba(255,255,255,0.08)" : "transparent",
+            color: isShapeTool ? "#fff" : "var(--text-secondary)",
+            border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+          onClick={() => { setShowShapeMenu(v => !v); setShowSymmetryMenu(false); setShowSizeMenu(false); setShowExportMenu(false); }}
+        >
+          {shapeIcon}
+        </button>
+        {showShapeMenu && (
+          <PortalDropdown anchorRef={shapeAnchorRef}>
+            <div style={dropdownTitleStyle}>Shapes</div>
+            {shapeTools.map(s => (
+              <DropdownItem
+                key={s.id} label={s.label} icon={s.icon}
+                active={activeTool === s.id}
+                onClick={() => { setActiveTool(s.id as PixelTool); closeAll(); }}
+              />
+            ))}
+          </PortalDropdown>
+        )}
       </div>
 
       {/* ── Symmetry ── */}
       <div className={styles.panelGroup}>
-        <div style={{ position: "relative" }}>
-          <ToolButton
-            icon={<SplitSquareHorizontal size={18} strokeWidth={1.5} />}
-            label={`Symmetry: ${symmetryMode}`}
-            active={symmetryMode !== "none"}
-            onClick={() => { setShowSymmetryMenu(v => !v); setShowShapeMenu(false); setShowSizeMenu(false); setShowExportMenu(false); }}
-          />
-          {showSymmetryMenu && (
-            <div style={dropdownStyle}>
-              <div style={dropdownTitleStyle}>Symmetry</div>
-              {(["none", "horizontal", "vertical", "both"] as const).map(mode => (
-                <DropdownItem
-                  key={mode}
-                  label={mode.charAt(0).toUpperCase() + mode.slice(1)}
-                  active={symmetryMode === mode}
-                  onClick={() => { setSymmetryMode(mode); setShowSymmetryMenu(false); }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <button
+          ref={symmetryAnchorRef}
+          className={styles.toolBtn}
+          style={{
+            background: symmetryMode !== "none"
+              ? "linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-brass) 100%)"
+              : showSymmetryMenu ? "rgba(255,255,255,0.08)" : "transparent",
+            color: symmetryMode !== "none" ? "#fff" : "var(--text-secondary)",
+            border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+          onClick={() => { setShowSymmetryMenu(v => !v); setShowShapeMenu(false); setShowSizeMenu(false); setShowExportMenu(false); }}
+        >
+          <SplitSquareHorizontal size={18} strokeWidth={1.5} />
+        </button>
+        {showSymmetryMenu && (
+          <PortalDropdown anchorRef={symmetryAnchorRef}>
+            <div style={dropdownTitleStyle}>Symmetry</div>
+            {(["none", "horizontal", "vertical", "both"] as const).map(mode => (
+              <DropdownItem
+                key={mode}
+                label={mode.charAt(0).toUpperCase() + mode.slice(1)}
+                active={symmetryMode === mode}
+                onClick={() => { setSymmetryMode(mode); closeAll(); }}
+              />
+            ))}
+          </PortalDropdown>
+        )}
       </div>
 
       {/* ── Zoom & Grid ── */}
@@ -289,54 +383,32 @@ export function PixelToolbar({ onSave }: { onSave?: () => void }) {
       {/* ── Canvas / Import / Export / Save ── */}
       <div className={styles.panelGroup}>
         {/* Canvas Size */}
-        <div style={{ position: "relative" }}>
-          <div style={{ position: "relative", display: "flex", justifyContent: "center" }}
-               onMouseEnter={() => {
-                 const el = document.getElementById('canvas-size-tooltip');
-                 if (el) el.style.display = 'flex';
-               }}
-               onMouseLeave={() => {
-                 const el = document.getElementById('canvas-size-tooltip');
-                 if (el) el.style.display = 'none';
-               }}>
-            <button
-              onClick={() => { setShowSizeMenu(v => !v); setShowShapeMenu(false); setShowSymmetryMenu(false); setShowExportMenu(false); }}
-              className={styles.toolBtnText}
-              style={{
-                background: showSizeMenu ? "rgba(255,255,255,0.1)" : "transparent",
-                color: "var(--text-secondary)", gap: "1px",
-              }}
-            >
-              <span style={{ fontSize: "0.55rem", lineHeight: 1, fontFamily: "var(--font-mono)", fontWeight: 700 }}>{canvasWidth}</span>
-              <span style={{ fontSize: "0.42rem", color: "var(--text-tertiary)", lineHeight: 1, fontFamily: "var(--font-mono)" }}>PX</span>
-            </button>
-            <div id="canvas-size-tooltip" style={{
-              display: 'none',
-              position: 'absolute', left: 'calc(100% + 14px)', top: '50%', transform: 'translateY(-50%)',
-              background: '#0f1115', border: '1px solid rgba(255,255,255,0.1)',
-              color: '#fff', padding: '5px 10px', borderRadius: '6px',
-              fontSize: '0.68rem', whiteSpace: 'nowrap', zIndex: 200,
-              boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-              flexDirection: 'column', gap: '1px',
-              pointerEvents: 'none',
-            }}>
-              <span style={{ fontWeight: 600 }}>Canvas Size</span>
-            </div>
-          </div>
-          {showSizeMenu && (
-            <div style={dropdownStyle}>
-              <div style={dropdownTitleStyle}>Canvas Size</div>
-              {CANVAS_SIZES.map(s => (
-                <DropdownItem
-                  key={s}
-                  label={`${s} × ${s}`}
-                  active={canvasWidth === s}
-                  onClick={() => { setCanvasSize(s, s); setShowSizeMenu(false); }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <button
+          ref={sizeAnchorRef}
+          className={styles.toolBtnText}
+          onClick={() => { setShowSizeMenu(v => !v); setShowShapeMenu(false); setShowSymmetryMenu(false); setShowExportMenu(false); }}
+          style={{
+            background: showSizeMenu ? "rgba(255,255,255,0.1)" : "transparent",
+            color: "var(--text-secondary)", gap: "1px", border: "none", cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <span style={{ fontSize: "0.55rem", lineHeight: 1, fontFamily: "var(--font-mono)", fontWeight: 700 }}>{canvasWidth}</span>
+          <span style={{ fontSize: "0.42rem", color: "var(--text-tertiary)", lineHeight: 1, fontFamily: "var(--font-mono)" }}>PX</span>
+        </button>
+        {showSizeMenu && (
+          <PortalDropdown anchorRef={sizeAnchorRef}>
+            <div style={dropdownTitleStyle}>Canvas Size</div>
+            {CANVAS_SIZES.map(s => (
+              <DropdownItem
+                key={s}
+                label={`${s} × ${s}`}
+                active={canvasWidth === s}
+                onClick={() => { setCanvasSize(s, s); closeAll(); }}
+              />
+            ))}
+          </PortalDropdown>
+        )}
 
         <Divider />
 
@@ -355,56 +427,32 @@ export function PixelToolbar({ onSave }: { onSave?: () => void }) {
         />
 
         {/* Export PNG */}
-        <div style={{ position: "relative" }}>
-        <div style={{ position: "relative", display: "flex", justifyContent: "center" }}
-             onMouseEnter={() => {
-               const el = document.getElementById('export-png-tooltip');
-               if (el) el.style.display = 'flex';
-             }}
-             onMouseLeave={() => {
-               const el = document.getElementById('export-png-tooltip');
-               if (el) el.style.display = 'none';
-             }}>
-          <button
-            onClick={() => { setShowExportMenu(v => !v); setShowShapeMenu(false); setShowSymmetryMenu(false); setShowSizeMenu(false); }}
-            className={styles.toolBtnText}
-            style={{
-              background: showExportMenu ? "rgba(255,255,255,0.1)" : "transparent",
-              color: "var(--text-secondary)", gap: "1px",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = showExportMenu ? "rgba(255,255,255,0.1)" : "transparent"; }}
-          >
-            <Download size={15} strokeWidth={1.5} />
-            <ChevronDown size={8} strokeWidth={2} style={{ opacity: 0.45 }} />
-          </button>
-          <div id="export-png-tooltip" style={{
-            display: 'none',
-            position: 'absolute', left: 'calc(100% + 14px)', top: '50%', transform: 'translateY(-50%)',
-            background: '#0f1115', border: '1px solid rgba(255,255,255,0.1)',
-            color: '#fff', padding: '5px 10px', borderRadius: '6px',
-            fontSize: '0.68rem', whiteSpace: 'nowrap', zIndex: 200,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-            flexDirection: 'column', gap: '1px',
-            pointerEvents: 'none',
-          }}>
-            <span style={{ fontWeight: 600 }}>Export PNG</span>
-          </div>
-        </div>
-          {showExportMenu && (
-            <div style={{ ...dropdownStyle, minWidth: "210px", bottom: 0, top: "auto" }}>
-              <div style={dropdownTitleStyle}>Export PNG</div>
-              {[
-                { scale: 16, label: "Ultra HQ (16×)", sub: `${canvasWidth * 16}×${canvasHeight * 16}px — print quality` },
-                { scale: 8, label: "High Quality (8×)", sub: `${canvasWidth * 8}×${canvasHeight * 8}px — recommended` },
-                { scale: 4, label: "Medium (4×)", sub: `${canvasWidth * 4}×${canvasHeight * 4}px` },
-                { scale: 2, label: "Low (2×)", sub: `${canvasWidth * 2}×${canvasHeight * 2}px — smallest` },
-              ].map(({ scale, label, sub }) => (
-                <DropdownItem key={scale} label={label} subLabel={sub} onClick={() => handleExportPNG(scale)} />
-              ))}
-            </div>
-          )}
-        </div>
+        <button
+          ref={exportAnchorRef}
+          className={styles.toolBtnText}
+          onClick={() => { setShowExportMenu(v => !v); setShowShapeMenu(false); setShowSymmetryMenu(false); setShowSizeMenu(false); }}
+          style={{
+            background: showExportMenu ? "rgba(255,255,255,0.1)" : "transparent",
+            color: "var(--text-secondary)", gap: "2px", border: "none", cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <Download size={15} strokeWidth={1.5} />
+          <ChevronDown size={8} strokeWidth={2} style={{ opacity: 0.45 }} />
+        </button>
+        {showExportMenu && (
+          <PortalDropdown anchorRef={exportAnchorRef} minWidth={210} alignBottom>
+            <div style={dropdownTitleStyle}>Export PNG</div>
+            {[
+              { scale: 16, label: "Ultra HQ (16×)", sub: `${canvasWidth * 16}×${canvasHeight * 16}px — print quality` },
+              { scale: 8, label: "High Quality (8×)", sub: `${canvasWidth * 8}×${canvasHeight * 8}px — recommended` },
+              { scale: 4, label: "Medium (4×)", sub: `${canvasWidth * 4}×${canvasHeight * 4}px` },
+              { scale: 2, label: "Low (2×)", sub: `${canvasWidth * 2}×${canvasHeight * 2}px — smallest` },
+            ].map(({ scale, label, sub }) => (
+              <DropdownItem key={scale} label={label} subLabel={sub} onClick={() => handleExportPNG(scale)} />
+            ))}
+          </PortalDropdown>
+        )}
 
         <ToolButton
           icon={<Trash2 size={18} strokeWidth={1.5} />}

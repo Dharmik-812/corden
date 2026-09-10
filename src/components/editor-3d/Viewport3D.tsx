@@ -191,23 +191,20 @@ function OBJExporterComponent() {
   return null;
 }
 
-function RenderExporterComponent() {
+function SaveRenderCapture() {
   const { gl, scene, camera } = useThree();
 
   useEffect(() => {
-    const handleRender = () => {
+    const handleSave = () => {
       gl.render(scene, camera);
-      const dataURL = gl.domElement.toDataURL("image/png");
+      const dataURL = gl.domElement.toDataURL('image/png');
       const link = document.createElement('a');
       link.href = dataURL;
-      link.download = 'corden-render.png';
-      document.body.appendChild(link);
+      link.download = `corden-render-${Date.now()}.png`;
       link.click();
-      document.body.removeChild(link);
     };
-
-    window.addEventListener('render-image', handleRender as EventListener);
-    return () => window.removeEventListener('render-image', handleRender as EventListener);
+    window.addEventListener('save-render', handleSave as EventListener);
+    return () => window.removeEventListener('save-render', handleSave as EventListener);
   }, [gl, scene, camera]);
 
   return null;
@@ -337,10 +334,6 @@ function InteractionController() {
   );
 }
 
-const SHADING_MODES = ['solid', 'wireframe', 'material', 'rendered'] as const;
-const SHADING_ICONS: Record<string, string> = { solid: '●', wireframe: '⊡', material: '◈', rendered: '◉' };
-const SHADING_LABELS: Record<string, string> = { solid: 'Solid', wireframe: 'Wireframe', material: 'Material Preview', rendered: 'Rendered' };
-
 export function Viewport3D() {
   const {
     shadingMode, environmentPreset,
@@ -458,7 +451,7 @@ export function Viewport3D() {
         <AnimationPlayer />
         <GLTFExporterComponent />
         <OBJExporterComponent />
-        <RenderExporterComponent />
+        <SaveRenderCapture />
         <InteractionController />
 
         {/* Lighting */}
@@ -469,17 +462,26 @@ export function Viewport3D() {
           </>
         )}
         {shadingMode === 'wireframe' && <ambientLight intensity={1} />}
-        {(shadingMode === 'material' || shadingMode === 'rendered') && (
+        {shadingMode === 'material' && (
           <>
-            <ambientLight intensity={0.2} />
-            <directionalLight position={[5, 10, 5]} intensity={0.5} castShadow />
+            <ambientLight intensity={0.15} />
+            <directionalLight position={[5, 10, 5]} intensity={0.4} castShadow />
+          </>
+        )}
+        {shadingMode === 'rendered' && (
+          <>
+            {/* High-quality render lighting — matches Blender EEVEE defaults */}
+            <ambientLight intensity={0.08} />
+            <directionalLight position={[6, 12, 8]} intensity={1.8} castShadow shadow-mapSize={[4096, 4096]} shadow-bias={-0.0001} />
+            <directionalLight position={[-4, 6, -6]} intensity={0.4} />
+            <hemisphereLight args={['#fffbf0', '#0a0c18', 0.3]} />
           </>
         )}
 
-        {/* Environment */}
+        {/* Environment — used for IBL lighting only, never as a visible background */}
         {showEnv && (
           <Suspense fallback={null}>
-            <Environment preset={environmentPreset} background={shadingMode === 'rendered'} />
+            <Environment preset={environmentPreset} background={false} />
           </Suspense>
         )}
 
@@ -586,48 +588,99 @@ export function Viewport3D() {
         </div>
       )}
 
-      {/* Shading mode HUD — top right (improved with labels on hover) */}
+      {/* Shading mode HUD — single unified pill */}
       <div style={{
         position: 'absolute', top: '10px', right: '80px',
-        display: 'flex', gap: '2px', zIndex: 30,
-        background: 'rgba(10,12,16,0.82)', backdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.09)', borderRadius: '8px',
-        padding: '3px',
+        display: 'flex', alignItems: 'center', gap: '6px', zIndex: 30,
+        fontFamily: 'var(--font-mono)',
       }}>
-        {SHADING_MODES.map((mode) => {
-          const isActive = shadingMode === mode;
-          return (
-            <button
-              key={mode}
-              title={SHADING_LABELS[mode]}
-              onClick={() => useEditor3DStore.getState().setShadingMode(mode)}
-              style={{
-                padding: '5px 9px', borderRadius: '5px', border: 'none',
-                background: isActive ? 'rgba(71,114,179,0.5)' : 'transparent',
-                color: isActive ? '#8bb8ff' : 'rgba(255,255,255,0.35)',
-                cursor: 'pointer', fontSize: '12px',
-                transition: 'all 0.15s',
-                display: 'flex', alignItems: 'center', gap: '5px',
-                outline: isActive ? '1px solid rgba(71,114,179,0.4)' : 'none',
-              }}
-            >
-              <span>{SHADING_ICONS[mode]}</span>
-              {isActive && (
-                <span style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.04em' }}>
-                  {SHADING_LABELS[mode].split(' ')[0]}
-                </span>
-              )}
-            </button>
-          );
-        })}
+        <div style={{
+          display: 'flex', gap: '1px', alignItems: 'center',
+          background: 'rgba(8,10,15,0.9)', backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px',
+          padding: '3px',
+        }}>
+          {([
+            { id: 'solid',     label: 'Solid' },
+            { id: 'wireframe', label: 'Wire' },
+            { id: 'material',  label: 'Material' },
+          ] as const).map(({ id, label }) => {
+            const isActive = shadingMode === id;
+            return (
+              <button
+                key={id}
+                title={label + ' Shading'}
+                onClick={() => useEditor3DStore.getState().setShadingMode(id)}
+                style={{
+                  padding: '4px 10px', borderRadius: '5px', border: 'none',
+                  background: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  color: isActive ? '#F3F4F6' : 'rgba(255,255,255,0.3)',
+                  cursor: 'pointer', fontSize: '0.65rem', fontWeight: isActive ? 700 : 400,
+                  letterSpacing: '0.04em', transition: 'all 0.12s',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+
+          {/* Separator */}
+          <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.08)', margin: '0 2px', flexShrink: 0 }} />
+
+          {/* Rendered button — joined to the pill */}
+          <button
+            title="Rendered — Live Viewport Render: HDR lighting, tone mapping & post-processing"
+            onClick={() => useEditor3DStore.getState().setShadingMode(
+              shadingMode === 'rendered' ? 'solid' : 'rendered'
+            )}
+            style={{
+              padding: '4px 10px', borderRadius: '5px', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '5px',
+              fontSize: '0.65rem', fontWeight: shadingMode === 'rendered' ? 700 : 400,
+              letterSpacing: '0.04em', transition: 'all 0.12s',
+              background: shadingMode === 'rendered' ? 'rgba(197,160,89,0.15)' : 'transparent',
+              color: shadingMode === 'rendered' ? '#C5A059' : 'rgba(255,255,255,0.3)',
+            }}
+          >
+            {shadingMode === 'rendered' && (
+              <span style={{
+                width: '5px', height: '5px', borderRadius: '50%', flexShrink: 0,
+                background: '#C5A059', display: 'inline-block',
+                animation: 'pulse-render 2s ease-in-out infinite',
+              }} />
+            )}
+            Rendered
+          </button>
+        </div>
+
+        {/* Save PNG — floats next to pill, only in rendered mode */}
+        {shadingMode === 'rendered' && (
+          <button
+            title="Save current rendered frame as PNG"
+            onClick={() => window.dispatchEvent(new Event('save-render'))}
+            style={{
+              padding: '4px 10px', borderRadius: '7px',
+              border: '1px solid rgba(197,160,89,0.3)',
+              background: 'rgba(197,160,89,0.08)', color: '#C5A059',
+              cursor: 'pointer', fontSize: '0.62rem', fontWeight: 600,
+              fontFamily: 'var(--font-mono)', letterSpacing: '0.04em',
+              backdropFilter: 'blur(20px)', transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(197,160,89,0.18)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(197,160,89,0.08)'; }}
+          >
+            Save PNG
+          </button>
+        )}
       </div>
 
       {/* Keyboard shortcut hint — bottom left */}
       <div style={{
         position: 'absolute', bottom: '10px', left: '14px',
         fontFamily: 'var(--font-mono)', fontSize: '0.6rem',
-        color: 'rgba(255,255,255,0.22)', userSelect: 'none', pointerEvents: 'none',
+        color: 'rgba(255,255,255,0.45)', userSelect: 'none', pointerEvents: 'none',
         lineHeight: 1.9, display: 'flex', flexDirection: 'column', gap: 0,
+        textShadow: '0 1px 4px rgba(0,0,0,0.9)',
       }}>
         {selectionMode === 'edit' ? (
           <>
@@ -657,6 +710,14 @@ export function Viewport3D() {
           {useEditor3DStore.getState().interactionMode.toUpperCase()} MODE
         </div>
       )}
+
+      {/* Pulse keyframe animation for rendered dot */}
+      <style>{`
+        @keyframes pulse-render {
+          0%, 100% { opacity: 1; box-shadow: 0 0 6px #C5A059; }
+          50% { opacity: 0.5; box-shadow: 0 0 12px #C5A059; }
+        }
+      `}</style>
     </div>
   );
 }

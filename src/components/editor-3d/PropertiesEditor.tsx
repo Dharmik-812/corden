@@ -5,6 +5,35 @@ import { Box, Wrench, Image as ImageIcon, Zap, Camera, Plus, X, Move, RotateCw, 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+function CustomCheckbox({ checked, onChange, label, accentColor = '#C5A059' }: { checked: boolean; onChange: (v: boolean) => void; label?: React.ReactNode; accentColor?: string }) {
+  return (
+    <label style={{ 
+      display: 'flex', alignItems: 'center', gap: '10px', 
+      cursor: 'pointer', padding: '4px 0',
+      transition: 'opacity 0.15s',
+    }}
+    onMouseEnter={e => { e.currentTarget.style.opacity = '0.8'; }}
+    onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+    >
+      <div style={{
+        width: '14px', height: '14px', borderRadius: '2px',
+        border: checked ? `1px solid ${accentColor}` : '1px solid rgba(255,255,255,0.15)',
+        background: checked ? `${accentColor}25` : 'rgba(0,0,0,0.3)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'all 0.15s',
+        flexShrink: 0
+      }}>
+        {checked && (
+          <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1 4L3.5 6.5L9 1" stroke={accentColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+      </div>
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} style={{ display: 'none' }} />
+      {label && <span style={{ fontSize: '0.75rem', color: checked ? '#F3F4F6' : 'rgba(255,255,255,0.5)', transition: 'color 0.15s', fontWeight: 600 }}>{label}</span>}
+    </label>
+  );
+}
 function ModifierItem({ objId, mod }: { objId: string, mod: Modifier }) {
   const { updateModifier, removeModifier, toggleModifier } = useEditor3DStore();
 
@@ -24,8 +53,11 @@ function ModifierItem({ objId, mod }: { objId: string, mod: Modifier }) {
         borderBottom: '1px solid rgba(255,255,255,0.04)' 
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <input type="checkbox" checked={mod.enabled} onChange={() => toggleModifier(objId, mod.id)} 
-            style={{ width: '14px', height: '14px', accentColor: '#6366f1', cursor: 'pointer' }} />
+          <CustomCheckbox 
+            checked={mod.enabled} 
+            onChange={(v) => toggleModifier(objId, mod.id)} 
+            accentColor="#6366f1"
+          />
           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: mod.enabled ? '#fff' : 'rgba(255,255,255,0.4)', textTransform: 'capitalize' }}>
             {mod.type}
           </span>
@@ -52,15 +84,14 @@ function ModifierItem({ objId, mod }: { objId: string, mod: Modifier }) {
         {mod.type === 'mirror' && (
           <div style={{ display: 'flex', gap: '12px' }}>
             {['X', 'Y', 'Z'].map(axis => (
-              <label key={axis} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
+              <div key={axis} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}>
+                <CustomCheckbox
                   checked={(mod as unknown as Record<string, boolean>)[`mirror${axis}`]}
-                  onChange={e => updateModifier(objId, mod.id, { [`mirror${axis}`]: e.target.checked })}
-                  style={{ width: '14px', height: '14px', accentColor: '#c084fc', cursor: 'pointer' }}
+                  onChange={v => updateModifier(objId, mod.id, { [`mirror${axis}`]: v })}
+                  accentColor="#c084fc"
+                  label={axis}
                 />
-                {axis}
-              </label>
+              </div>
             ))}
           </div>
         )}
@@ -85,18 +116,85 @@ function ModifierItem({ objId, mod }: { objId: string, mod: Modifier }) {
   );
 }
 
-function SliderRow({ label, value, min, max, step, accentColor = '#6366f1', onChange }: {
+function SliderRow({ label, value, min, max, step, accentColor = '#C5A059', onChange }: {
   label: string; value: number; min: number; max: number; step: number; accentColor?: string; onChange: (v: number) => void;
 }) {
+  const percentage = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <label style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>{label}</label>
+        <span style={{ fontSize: '0.65rem', color: '#F3F4F6', fontFamily: 'var(--font-mono)', background: 'rgba(0,0,0,0.4)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
+          {value.toFixed(step < 1 ? 2 : 0)}
+        </span>
+      </div>
+      <div style={{ position: 'relative', height: '16px', display: 'flex', alignItems: 'center' }}>
+        <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+          <div style={{ width: `${percentage}%`, height: '100%', background: accentColor, borderRadius: '2px' }} />
+        </div>
+        <div style={{ 
+          position: 'absolute', left: `calc(${percentage}% - 6px)`, 
+          width: '12px', height: '12px', borderRadius: '50%', background: accentColor, 
+          boxShadow: `0 0 8px ${accentColor}40`, pointerEvents: 'none' 
+        }} />
+        <input 
+          type="range" min={min} max={max} step={step} value={value}
+          onChange={e => onChange(parseFloat(e.target.value))}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', margin: 0 }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ColorRow({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const [focused, setFocused] = useState(false);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <label style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>{label}</label>
-        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px' }}>{value.toFixed(step < 1 ? 2 : 0)}</span>
+      <label style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)' }}>{label}</label>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ 
+          position: 'relative', width: '32px', height: '32px', borderRadius: '6px', 
+          border: '1px solid rgba(255,255,255,0.15)', background: value,
+          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)', overflow: 'hidden', flexShrink: 0
+        }}>
+          <input type="color" value={value} onChange={e => onChange(e.target.value)} 
+            style={{ position: 'absolute', top: '-10px', left: '-10px', width: '200%', height: '200%', opacity: 0, cursor: 'pointer' }} 
+          />
+        </div>
+        <input 
+          type="text" value={value.toUpperCase()} onChange={e => onChange(e.target.value)}
+          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+          style={{ 
+            flex: 1, background: 'rgba(0,0,0,0.4)', minWidth: 0,
+            border: focused ? '1px solid #C5A059' : '1px solid rgba(255,255,255,0.06)', 
+            color: '#F3F4F6', padding: '8px 10px', borderRadius: '6px', 
+            fontSize: '0.7rem', fontFamily: 'var(--font-mono)', outline: 'none',
+            boxShadow: focused ? '0 0 0 2px rgba(197, 160, 89, 0.2)' : 'inset 0 2px 4px rgba(0,0,0,0.2)',
+            transition: 'all 0.2s'
+          }} 
+        />
       </div>
-      <input type="range" min={min} max={max} step={step} value={value}
-        onChange={e => onChange(parseFloat(e.target.value))}
-        style={{ width: '100%', cursor: 'pointer', accentColor: accentColor }}
+    </div>
+  );
+}
+
+function StringRow({ label, value, placeholder, onChange }: { label: string; value: string; placeholder?: string; onChange: (v: string) => void }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <label style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)' }}>{label}</label>
+      <input 
+        type="text" placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)}
+        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+        style={{ 
+          background: 'rgba(0,0,0,0.4)', 
+          border: focused ? '1px solid #C5A059' : '1px solid rgba(255,255,255,0.06)', 
+          color: '#F3F4F6', padding: '8px 10px', borderRadius: '6px', 
+          fontSize: '0.7rem', fontFamily: 'var(--font-mono)', outline: 'none',
+          boxShadow: focused ? '0 0 0 2px rgba(197, 160, 89, 0.2)' : 'inset 0 2px 4px rgba(0,0,0,0.2)',
+          transition: 'all 0.2s'
+        }} 
       />
     </div>
   );
@@ -213,10 +311,12 @@ export function PropertiesEditor() {
           {/* POST-PROCESSING SECTION */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <span style={sectionLabelStyle}>Render Engine</span>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '4px 0' }}>
-              <input type="checkbox" checked={postFX.enabled} onChange={e => setPostFX({ enabled: e.target.checked })} style={{ width: '16px', height: '16px', accentColor: '#6366f1' }} />
-              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>Post-Processing</span>
-            </label>
+            <CustomCheckbox 
+              checked={postFX.enabled} 
+              onChange={v => setPostFX({ enabled: v })} 
+              label={<span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>Post-Processing</span>}
+              accentColor="#6366f1"
+            />
 
             <AnimatePresence>
               {postFX.enabled && (
@@ -230,10 +330,12 @@ export function PropertiesEditor() {
                     
                     {/* Bloom */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                        <input type="checkbox" checked={postFX.bloom.enabled} onChange={e => updatePostFX('bloom', { enabled: e.target.checked })} style={{ width: '14px', height: '14px', accentColor: '#f59e0b' }} />
-                        <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.8)' }}>Bloom</span>
-                      </label>
+                      <CustomCheckbox 
+                        checked={postFX.bloom.enabled} 
+                        onChange={v => updatePostFX('bloom', { enabled: v })} 
+                        label="Bloom"
+                        accentColor="#f59e0b"
+                      />
                       {postFX.bloom.enabled && (
                         <div style={{ paddingLeft: '22px' }}>
                           <SliderRow label="Intensity" value={postFX.bloom.intensity} min={0} max={5} step={0.1} accentColor="#f59e0b" onChange={v => updatePostFX('bloom', { intensity: v })} />
@@ -243,10 +345,12 @@ export function PropertiesEditor() {
 
                     {/* SSAO */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                        <input type="checkbox" checked={postFX.ssao.enabled} onChange={e => updatePostFX('ssao', { enabled: e.target.checked })} style={{ width: '14px', height: '14px', accentColor: '#3b82f6' }} />
-                        <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.8)' }}>Ambient Occlusion (SSAO)</span>
-                      </label>
+                      <CustomCheckbox 
+                        checked={postFX.ssao.enabled} 
+                        onChange={v => updatePostFX('ssao', { enabled: v })} 
+                        label="Ambient Occlusion (SSAO)"
+                        accentColor="#3b82f6"
+                      />
                       {postFX.ssao.enabled && (
                         <div style={{ paddingLeft: '22px' }}>
                           <SliderRow label="Intensity" value={postFX.ssao.intensity} min={0} max={5} step={0.1} accentColor="#3b82f6" onChange={v => updatePostFX('ssao', { intensity: v })} />
@@ -254,15 +358,19 @@ export function PropertiesEditor() {
                       )}
                     </div>
 
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                      <input type="checkbox" checked={postFX.dof.enabled} onChange={e => updatePostFX('dof', { enabled: e.target.checked })} style={{ width: '14px', height: '14px', accentColor: '#10b981' }} />
-                      <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.8)' }}>Depth of Field</span>
-                    </label>
+                    <CustomCheckbox 
+                      checked={postFX.dof.enabled} 
+                      onChange={v => updatePostFX('dof', { enabled: v })} 
+                      label="Depth of Field"
+                      accentColor="#10b981"
+                    />
 
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                      <input type="checkbox" checked={postFX.chromaticAberration.enabled} onChange={e => updatePostFX('chromaticAberration', { enabled: e.target.checked })} style={{ width: '14px', height: '14px', accentColor: '#ec4899' }} />
-                      <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.8)' }}>Chromatic Aberration</span>
-                    </label>
+                    <CustomCheckbox 
+                      checked={postFX.chromaticAberration.enabled} 
+                      onChange={v => updatePostFX('chromaticAberration', { enabled: v })} 
+                      label="Chromatic Aberration"
+                      accentColor="#ec4899"
+                    />
                   </div>
                 </motion.div>
               )}
@@ -272,10 +380,12 @@ export function PropertiesEditor() {
           {/* PHYSICS SECTION */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <span style={sectionLabelStyle}>Simulation</span>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '4px 0' }}>
-              <input type="checkbox" checked={physicsEnabled} onChange={e => setPhysicsEnabled(e.target.checked)} style={{ width: '16px', height: '16px', accentColor: '#10b981' }} />
-              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>Physics Engine</span>
-            </label>
+            <CustomCheckbox 
+              checked={physicsEnabled} 
+              onChange={v => setPhysicsEnabled(v)} 
+              label={<span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>Physics Engine</span>}
+              accentColor="#10b981"
+            />
           </div>
         </div>
       </div>
@@ -390,17 +500,36 @@ export function PropertiesEditor() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {[
                 { id: 'cb_vis', checked: !obj.hidden, onChange: (v: boolean) => updateObject(obj.id, { hidden: !v }), label: 'Visible in Viewport' },
                 { id: 'cb_rvis', checked: obj.renderVisible, onChange: (v: boolean) => updateObject(obj.id, { renderVisible: v }), label: 'Visible in Render' },
                 ...(!isLight && !isCamera ? [{ id: 'cb_smooth', checked: obj.smoothShading ?? false, onChange: (v: boolean) => updateObject(obj.id, { smoothShading: v }), label: 'Smooth Shading' }] : []),
               ].map(({ id, checked, onChange, label }) => (
-                <label key={id} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '4px 0' }}>
-                  <input type="checkbox" id={id} checked={checked} onChange={e => onChange(e.target.checked)}
-                    style={{ width: '16px', height: '16px', accentColor: '#6366f1', cursor: 'pointer', flexShrink: 0 }}
-                  />
-                  <span style={{ fontSize: '0.75rem', color: '#fff' }}>{label}</span>
+                <label key={id} style={{ 
+                  display: 'flex', alignItems: 'center', gap: '10px', 
+                  cursor: 'pointer', padding: '6px 8px', borderRadius: '4px',
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <div style={{
+                    width: '14px', height: '14px', borderRadius: '2px',
+                    border: checked ? '1px solid #C5A059' : '1px solid rgba(255,255,255,0.15)',
+                    background: checked ? 'rgba(197, 160, 89, 0.15)' : 'rgba(0,0,0,0.3)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.15s',
+                    flexShrink: 0
+                  }}>
+                    {checked && (
+                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M1 4L3.5 6.5L9 1" stroke="#C5A059" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </div>
+                  <input type="checkbox" id={id} checked={checked} onChange={e => onChange(e.target.checked)} style={{ display: 'none' }} />
+                  <span style={{ fontSize: '0.7rem', color: checked ? '#F3F4F6' : 'rgba(255,255,255,0.5)', transition: 'color 0.15s' }}>{label}</span>
                 </label>
               ))}
             </div>
@@ -461,15 +590,7 @@ export function PropertiesEditor() {
               <SliderRow label="Field of View (FOV)" value={obj.fov || 50} min={10} max={120} step={1} accentColor="#10b981" onChange={v => updateObject(obj.id, { fov: v })} />
             ) : isLight ? (
               <>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={sectionLabelStyle}>Color</label>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <div style={{ width: '40px', height: '40px', padding: '2px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)' }}>
-                      <input type="color" value={obj.lightColor} onChange={e => updateObject(obj.id, { lightColor: e.target.value })} style={{ width: '100%', height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '4px' }} />
-                    </div>
-                    <input type="text" value={obj.lightColor} onChange={e => updateObject(obj.id, { lightColor: e.target.value })} style={{ flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)', color: '#fff', padding: '10px 12px', borderRadius: '8px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', outline: 'none', transition: 'border 0.2s' }} />
-                  </div>
-                </div>
+                <ColorRow label="Color" value={obj.lightColor} onChange={v => updateObject(obj.id, { lightColor: v })} />
                 <SliderRow label="Intensity" value={obj.lightIntensity ?? 1} min={0} max={20} step={0.1} accentColor="#f59e0b" onChange={v => updateObject(obj.id, { lightIntensity: v })} />
                 {(obj.lightType === 'point' || obj.lightType === 'spot') && (
                   <SliderRow label="Distance" value={obj.lightDistance ?? 10} min={0} max={50} step={1} accentColor="#f59e0b" onChange={v => updateObject(obj.id, { lightDistance: v })} />
@@ -477,28 +598,12 @@ export function PropertiesEditor() {
               </>
             ) : (
               <>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={sectionLabelStyle}>Base Color</label>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <div style={{ width: '40px', height: '40px', padding: '2px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)' }}>
-                      <input type="color" value={obj.color} onChange={e => updateObject(obj.id, { color: e.target.value })} style={{ width: '100%', height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '4px' }} />
-                    </div>
-                    <input type="text" value={obj.color} onChange={e => updateObject(obj.id, { color: e.target.value })} style={{ flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)', color: '#fff', padding: '10px 12px', borderRadius: '8px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', outline: 'none' }} />
-                  </div>
-                </div>
+                <ColorRow label="Base Color" value={obj.color} onChange={v => updateObject(obj.id, { color: v })} />
 
                 <SliderRow label="Roughness" value={obj.roughness} min={0} max={1} step={0.01} accentColor="#c084fc" onChange={v => updateObject(obj.id, { roughness: v })} />
                 <SliderRow label="Metalness" value={obj.metalness} min={0} max={1} step={0.01} accentColor="#3b82f6" onChange={v => updateObject(obj.id, { metalness: v })} />
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={sectionLabelStyle}>Emissive Color</label>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <div style={{ width: '40px', height: '40px', padding: '2px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)' }}>
-                      <input type="color" value={obj.emissive || '#000000'} onChange={e => updateObject(obj.id, { emissive: e.target.value })} style={{ width: '100%', height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '4px' }} />
-                    </div>
-                    <input type="text" value={obj.emissive || '#000000'} onChange={e => updateObject(obj.id, { emissive: e.target.value })} style={{ flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)', color: '#fff', padding: '10px 12px', borderRadius: '8px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', outline: 'none' }} />
-                  </div>
-                </div>
+                <ColorRow label="Emissive Color" value={obj.emissive || '#000000'} onChange={v => updateObject(obj.id, { emissive: v })} />
                 <SliderRow label="Emissive Intensity" value={obj.emissiveIntensity ?? 0} min={0} max={5} step={0.1} accentColor="#ef4444" onChange={v => updateObject(obj.id, { emissiveIntensity: v })} />
 
                 <SliderRow label="Opacity" value={obj.opacity ?? 1} min={0} max={1} step={0.01} accentColor="#6366f1" onChange={v => updateObject(obj.id, { opacity: v })} />
@@ -508,16 +613,17 @@ export function PropertiesEditor() {
                   { label: 'Normal Map URL', key: 'normalMap', value: obj.normalMap },
                   { label: 'Roughness Map URL', key: 'roughnessMap', value: obj.roughnessMap },
                 ].map(({ label, key, value }) => (
-                  <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={sectionLabelStyle}>{label}</label>
-                    <input type="text" placeholder="https://…" value={(value as string) || ''} onChange={e => updateObject(obj.id, { [key]: e.target.value })} style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)', color: '#fff', padding: '10px 12px', borderRadius: '8px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', outline: 'none' }} />
-                  </div>
+                  <StringRow key={key} label={label} value={(value as string) || ''} placeholder="https://…" onChange={v => updateObject(obj.id, { [key]: v })} />
                 ))}
 
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 0', marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                  <input type="checkbox" checked={obj.wireframe} onChange={e => updateObject(obj.id, { wireframe: e.target.checked })} style={{ width: '16px', height: '16px', accentColor: '#6366f1', cursor: 'pointer' }} />
-                  <span style={{ fontSize: '0.75rem', color: '#fff', fontWeight: 600 }}>Wireframe overlay</span>
-                </label>
+                <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <CustomCheckbox 
+                    checked={obj.wireframe} 
+                    onChange={v => updateObject(obj.id, { wireframe: v })} 
+                    label="Wireframe overlay"
+                    accentColor="#6366f1"
+                  />
+                </div>
               </>
             )}
           </div>
